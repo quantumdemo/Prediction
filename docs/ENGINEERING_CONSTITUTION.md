@@ -22,7 +22,7 @@
 
 ### ARTICLE IV — ABSTENTION, RISK & NO-BET AS FIRST-CLASS OUTPUT
 1. **NO-BET Mandate**: The platform is explicitly designed to decline forecasting when data quality, model uncertainty, lineup instability, or market noise exceed acceptable safety thresholds.
-2. **Abstention Criteria**: A output of `NO BET / INSUFFICIENT EVIDENCE` is considered a valid, successful operational outcome.
+2. **Abstention Criteria**: An output of `NO BET / INSUFFICIENT EVIDENCE` is considered a valid, successful operational outcome.
 
 ---
 

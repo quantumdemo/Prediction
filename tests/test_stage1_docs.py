@@ -17,40 +17,45 @@ class TestStage1Docs(unittest.TestCase):
         with open(self.master_spec_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        required_keywords = [
-            "SINGLE SOURCE OF TRUTH",
-            "1. CORE PRODUCT",
-            "2. FUNDAMENTAL ARCHITECTURE",
-            "3. REAL DATA ONLY",
-            "4. FOOTBALL ENTITY SYSTEM",
-            "5. FIXTURE VERIFICATION",
-            "6. HISTORICAL DATA",
-            "7. CURRENT MATCH RESEARCH",
-            "8. DATA VALIDATION",
-            "9. FEATURE ENGINEERING",
-            "10. FORECASTING ENGINE",
-            "11. TIME-AWARE VALIDATION",
-            "12. PROBABILITY CALIBRATION",
-            "13. MARKET SYSTEM",
-            "14. SPECIALIST MARKETS",
-            "15. RISK, CONFIDENCE AND NO BET",
-            "16. AUDITABILITY",
-            "17. WEBSITE",
-            "18. VERCEL",
-            "19. SECURITY",
-            "20. VERSIONING",
-            "21. TESTING",
-            "22. DATA AND RESEARCH RULE",
-            "23. DEVELOPMENT STAGES",
-            "24. STAGE CONTROL",
-            "25. COMPLETION STANDARD",
-            "26. NO INVENTION RULE",
-            "27. STANDARD STAGE HANDOFF REPORT",
-            "28. COMMUNICATION RULE",
-            "29. MASTER PRINCIPLE"
+        required_sections = [
+            "SECTION 1: MASTER CONTROL SPECIFICATION",
+            "SECTION 2: FORMAL PLATFORM REQUIREMENTS DOCUMENT",
+            "SECTION 3: SYSTEM BOUNDARIES",
+            "SECTION 4: DATA CONTRACT PRINCIPLES",
+            "SECTION 5: ML GOVERNANCE",
+            "SECTION 6: PREDICTION LIFECYCLE",
+            "SECTION 7: NO-BET GOVERNANCE",
+            "SECTION 8: MARKET GOVERNANCE",
+            "SECTION 9: DATA SOURCE GOVERNANCE",
+            "SECTION 10: REQUIREMENTS TRACEABILITY MATRIX",
+            "SECTION 11: STAGE DEPENDENCY MAP",
+            "SECTION 12: OPEN TECHNICAL QUESTIONS REGISTER",
+            "SECTION 13: PROJECT RISK REGISTER"
         ]
-        for keyword in required_keywords:
-            self.assertIn(keyword, content, f"Missing required keyword/section '{keyword}' in MASTER_SPECIFICATION.md")
+        for section in required_sections:
+            self.assertIn(section, content, f"Missing section '{section}' in MASTER_SPECIFICATION.md")
+
+    def test_requirement_ids(self):
+        with open(self.master_spec_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        req_prefixes = [
+            "REQ-FUNC-",
+            "REQ-DATA-",
+            "REQ-ML-",
+            "REQ-WEB-",
+            "REQ-EVID-",
+            "REQ-MKT-",
+            "REQ-RISK-",
+            "REQ-REP-",
+            "REQ-SEC-",
+            "REQ-TEST-",
+            "REQ-DEP-",
+            "REQ-MON-",
+            "REQ-VER-"
+        ]
+        for prefix in req_prefixes:
+            self.assertIn(prefix, content, f"Missing requirement prefix '{prefix}' in MASTER_SPECIFICATION.md")
 
     def test_constitution_articles(self):
         with open(self.constitution_path, "r", encoding="utf-8") as f:
