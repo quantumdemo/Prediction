@@ -3,6 +3,7 @@
 [![Stage 1: Master Specification & Engineering Constitution](https://img.shields.io/badge/Stage-1%20Complete-green)](#development-stages)
 [![Stage 2: Architecture & Technology Research](https://img.shields.io/badge/Stage-2%20Complete-green)](#development-stages)
 [![Stage 3: Repository & Application Skeleton](https://img.shields.io/badge/Stage-3%20Complete-green)](#development-stages)
+[![Stage 4: Database Schema & Data Contracts](https://img.shields.io/badge/Stage-4%20Complete-green)](#development-stages)
 
 A production-quality Football AI Intelligence & Machine-Learning Platform built for real-world football match data ingestion, validation, feature engineering, statistical/ML forecasting, risk evaluation, probability calibration, and auditable prediction reporting.
 
@@ -77,7 +78,7 @@ The core objective is to calculate scientifically sound football event probabili
 - [x] **STAGE 1 — Master Specification & Engineering Constitution**
 - [x] **STAGE 2 — Architecture & Technology Research**
 - [x] **STAGE 3 — Repository, Application Skeleton & Vercel Foundation**
-- [ ] STAGE 4 — Database Schema & Data Contracts
+- [x] **STAGE 4 — Database Schema & Data Contracts**
 - [ ] STAGE 5 — Football Data Source Research & Acquisition Strategy
 - [ ] STAGE 6 — Historical Dataset Acquisition & Ingestion
 - [ ] STAGE 7 — Data Cleaning, Normalization & Validation
@@ -126,4 +127,4 @@ ruff check .
 npm run build --workspace=apps/web
 ```
 
-For detailed setup instructions, refer to [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md) and [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md).
+For detailed setup instructions, refer to [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md), [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md), [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md), and [`docs/DATA_CONTRACTS.md`](docs/DATA_CONTRACTS.md).
