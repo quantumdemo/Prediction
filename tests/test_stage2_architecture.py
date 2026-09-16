@@ -1,6 +1,7 @@
 import os
 import unittest
 
+
 class TestStage2ArchitectureDocs(unittest.TestCase):
     def setUp(self):
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -19,11 +20,14 @@ class TestStage2ArchitectureDocs(unittest.TestCase):
             "DEPLOYMENT_ARCHITECTURE.md",
             "FAILURE_AND_RECOVERY_ARCHITECTURE.md",
             "TECHNOLOGY_RISK_REGISTER.md",
-            "ADR_DECISIONS.md"
+            "ADR_DECISIONS.md",
         ]
         for filename in required_files:
             filepath = os.path.join(self.docs_dir, filename)
-            self.assertTrue(os.path.exists(filepath), f"Stage 2 document {filename} must exist in docs/")
+            self.assertTrue(
+                os.path.exists(filepath),
+                f"Stage 2 document {filename} must exist in docs/",
+            )
 
     def test_adr_decisions_structure(self):
         filepath = os.path.join(self.docs_dir, "ADR_DECISIONS.md")
@@ -39,10 +43,12 @@ class TestStage2ArchitectureDocs(unittest.TestCase):
             "ADR-006: OBJECT & ARTIFACT STORAGE",
             "ADR-007: DEPLOYMENT INFRASTRUCTURE",
             "ADR-008: SYSTEM MONITORING & OBSERVABILITY",
-            "ADR-009: FOOTBALL DATA SOURCE INTEGRATION STRATEGY"
+            "ADR-009: FOOTBALL DATA SOURCE INTEGRATION STRATEGY",
         ]
         for adr in required_adrs:
-            self.assertIn(adr, content, f"Missing required ADR '{adr}' in ADR_DECISIONS.md")
+            self.assertIn(
+                adr, content, f"Missing required ADR '{adr}' in ADR_DECISIONS.md"
+            )
 
     def test_infrastructure_vercel_separation(self):
         filepath = os.path.join(self.docs_dir, "INFRASTRUCTURE_ARCHITECTURE.md")
@@ -75,12 +81,15 @@ class TestStage2ArchitectureDocs(unittest.TestCase):
         self.assertIn("Isotonic Regression", content)
 
     def test_no_bet_and_failure_recovery(self):
-        filepath = os.path.join(self.docs_dir, "FAILURE_AND_RECOVERY_ARCHITECTURE.md")
+        filepath = os.path.join(
+            self.docs_dir, "FAILURE_AND_RECOVERY_ARCHITECTURE.md"
+        )
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
 
         self.assertIn("NO-BET FALLBACK MATRIX", content)
         self.assertIn("NO BET", content)
+
 
 if __name__ == "__main__":
     unittest.main()
