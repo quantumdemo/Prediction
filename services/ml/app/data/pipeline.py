@@ -17,6 +17,7 @@ from services.ml.app.db.models import (
     ClubAliasModel,
     ClubExternalIdModel,
     ClubModel,
+    ClubSeasonMembershipModel,
     CompetitionModel,
     CountryModel,
     DatasetVersionModel,
@@ -46,10 +47,6 @@ class HistoricalIngestionPipeline:
         self.of_adapter = OpenFootballReferenceAdapter()
 
     def ensure_sources_registered(self) -> Dict[str, str]:
-        """
-        Ensures base sources are registered in the sources table.
-        Returns mapping: source_code -> source_uuid
-        """
         source_records = [
             {
                 "code": "FOOTBALL_DATA_UK",
@@ -95,10 +92,6 @@ class HistoricalIngestionPipeline:
         return source_map
 
     def ensure_reference_entities(self, source_map: Dict[str, str]):
-        """
-        Seeds reference countries, competitions, and OpenFootball club aliases.
-        """
-        # Countries
         countries_data = [
             ("ENG", "England", "Europe"),
             ("ESP", "Spain", "Europe"),
@@ -116,7 +109,6 @@ class HistoricalIngestionPipeline:
                 self.db.refresh(c)
             country_map[code] = c.id
 
-        # Competitions & Seasons
         comp_map = {}
         season_map = {}
         for comp_code, comp_info in LEAGUE_MAP.items():
@@ -138,7 +130,6 @@ class HistoricalIngestionPipeline:
                 self.db.refresh(comp)
             comp_map[comp_code] = comp.id
 
-            # Seasons
             for s_label in SEASON_MAP.keys():
                 s = (
                     self.db.query(SeasonModel)
@@ -156,7 +147,6 @@ class HistoricalIngestionPipeline:
                     self.db.refresh(s)
                 season_map[(comp_code, s_label)] = s.id
 
-        # Seed OpenFootball Reference Clubs and Aliases
         of_source_id = source_map.get("OPENFOOTBALL")
         for club_ref in self.of_adapter.load_reference_clubs():
             ctry_id = country_map.get(club_ref["country_code"])
@@ -197,13 +187,8 @@ class HistoricalIngestionPipeline:
     def resolve_or_create_club(
         self, team_name: str, country_id: str, source_id: str
     ) -> str:
-        """
-        Resolves team_name to canonical club_id via exact match, alias, or external_id.
-        If no match exists, creates a new canonical ClubModel and ClubAliasModel.
-        """
         clean_name = team_name.strip()
 
-        # 1. Exact match on canonical_name
         club = (
             self.db.query(ClubModel)
             .filter_by(canonical_name=clean_name)
@@ -212,7 +197,6 @@ class HistoricalIngestionPipeline:
         if club:
             return club.id
 
-        # 2. Check club_aliases
         alias = (
             self.db.query(ClubAliasModel)
             .filter_by(alias_name=clean_name)
@@ -221,7 +205,6 @@ class HistoricalIngestionPipeline:
         if alias:
             return alias.club_id
 
-        # 3. Check club_external_ids
         ext = (
             self.db.query(ClubExternalIdModel)
             .filter_by(source_id=source_id, source_club_name=clean_name)
@@ -230,7 +213,6 @@ class HistoricalIngestionPipeline:
         if ext:
             return ext.club_id
 
-        # 4. Create new canonical club and alias safely
         new_club = ClubModel(
             country_id=country_id,
             canonical_name=clean_name,
@@ -254,15 +236,31 @@ class HistoricalIngestionPipeline:
 
         return new_club.id
 
+    def ensure_club_season_membership(
+        self, club_id: str, competition_id: str, season_id: str
+    ):
+        """
+        Idempotently registers historical club-season membership relationship.
+        """
+        existing = (
+            self.db.query(ClubSeasonMembershipModel)
+            .filter_by(club_id=club_id, season_id=season_id)
+            .first()
+        )
+        if not existing:
+            mship = ClubSeasonMembershipModel(
+                club_id=club_id,
+                competition_id=competition_id,
+                season_id=season_id,
+            )
+            self.db.add(mship)
+            self.db.commit()
+
     def run_historical_ingestion(
         self,
         competitions: List[str] = None,
         seasons: List[str] = None,
     ) -> Tuple[str, Dict[str, Any]]:
-        """
-        Executes historical dataset acquisition run across target competitions and seasons.
-        Returns: (run_id, summary_stats)
-        """
         if competitions is None:
             competitions = ["EPL", "LALIGA", "SERIEA", "BUNDESLIGA", "LIGUE1"]
         if seasons is None:
@@ -275,7 +273,6 @@ class HistoricalIngestionPipeline:
             source_map
         )
 
-        # Create IngestionRun
         ingestion_run = IngestionRunModel(
             source_id=fd_source_id,
             status="RUNNING",
@@ -318,7 +315,6 @@ class HistoricalIngestionPipeline:
                     )
                     continue
 
-                # Store raw payload
                 raw_entry = self.fd_adapter.create_raw_payload_entry(
                     source_id=fd_source_id,
                     entity_type="MATCH_BATCH_CSV",
@@ -331,7 +327,6 @@ class HistoricalIngestionPipeline:
                 raw_model = RawSourcePayloadModel(**raw_entry)
                 self.db.add(raw_model)
 
-                # Store provenance
                 prov_entry = self.fd_adapter.create_provenance_entry(
                     entity_type="BATCH_CSV",
                     entity_id=raw_model.id,
@@ -343,7 +338,6 @@ class HistoricalIngestionPipeline:
                 self.db.add(ProvenanceRecordModel(**prov_entry))
                 self.db.commit()
 
-                # Process match records
                 for rec in records:
                     total_discovered += 1
 
@@ -358,7 +352,14 @@ class HistoricalIngestionPipeline:
                         total_rejected += 1
                         continue
 
-                    # Idempotent match lookup
+                    # Maintain club-season memberships deterministically
+                    self.ensure_club_season_membership(
+                        home_club_id, comp_id, s_id
+                    )
+                    self.ensure_club_season_membership(
+                        away_club_id, comp_id, s_id
+                    )
+
                     existing_match = (
                         self.db.query(MatchModel)
                         .filter_by(
@@ -396,7 +397,6 @@ class HistoricalIngestionPipeline:
                         total_accepted += 1
                         comp_accepted += 1
 
-                    # Persist match statistics idempotently
                     self._persist_match_stats(
                         match_obj.id,
                         home_club_id,
@@ -405,12 +405,10 @@ class HistoricalIngestionPipeline:
                         fd_source_id,
                     )
 
-                # Maintain club-season memberships
                 self.db.commit()
 
             coverage_by_comp[comp_code] = comp_accepted
 
-        # Complete IngestionRun
         ingestion_run.status = "COMPLETED"
         ingestion_run.records_ingested = total_accepted
         ingestion_run.completed_at_utc = datetime.datetime.now(
@@ -418,7 +416,6 @@ class HistoricalIngestionPipeline:
         )
         self.db.commit()
 
-        # Create DatasetVersion marker with unique timestamp
         timestamp_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
         dataset_ver = DatasetVersionModel(
             version_label=f"v1.0-historical-{timestamp_str}",
@@ -453,9 +450,6 @@ class HistoricalIngestionPipeline:
         stats: Dict[str, Any],
         source_id: str,
     ):
-        """
-        Persists individual numerical match statistics into match_statistics table idempotently.
-        """
         stat_mappings = [
             ("home_shots", home_club_id, "SHOTS"),
             ("away_shots", away_club_id, "SHOTS"),

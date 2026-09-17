@@ -8,6 +8,8 @@
 - **Total Canonical Matches Acquired**: **39**
 - **Total Match Statistics Acquired**: **468**
 - **Total Canonical Clubs Created**: **44**
+- **Total Club-Season Memberships**: **40**
+- **Authoritative Database Technology**: PostgreSQL production schema ORM models (`services/ml/app/db/models.py`) verified via local SQLite database instance (`football_ai_stage6.db`).
 
 ---
 
@@ -23,18 +25,18 @@
 | `clubs` | **44** | Canonical Club Entities |
 | `club_aliases` | **58** | Alternate Club Names & Variant Mappings |
 | `club_external_ids` | **34** | Provider External Identifiers |
-| `club_season_memberships` | **0** | Reserved for future structured membership tracking |
+| `club_season_memberships` | **40** | Deterministically Populated Club-Season Memberships |
 | `players` | **0** | `N/A` — Unavailable in Football-Data.co.uk CSV feeds |
 | `player_club_memberships` | **0** | `N/A` — Unavailable in Football-Data.co.uk CSV feeds |
 | `matches` | **39** | Real Historical Matches Ingested |
-| `match_external_ids` | **0** | Reserved for multi-provider external match mappings |
+| `match_external_ids` | **0** | `N/A` — Single primary provider acquired in initial batch |
 | `match_statistics` | **468** | Real Numerical Match Statistics (Shots, SOT, Corners, Cards, Fouls) |
 | `match_events` | **0** | `N/A` — Event-level data unavailable in team-aggregate CSV feeds |
 | `match_lineups` | **0** | `N/A` — Lineups unavailable in team-aggregate CSV feeds |
 | `raw_source_payloads` | **2** | Raw Bulk CSV Payloads Preserved |
 | `provenance_records` | **2** | Batch HTTP Provenance Records |
-| `dataset_versions` | **2** | Immutable Dataset Snapshot Markers |
-| `ingestion_runs` | **2** | Ingestion Execution Run Logs |
+| `dataset_versions` | **1** | Immutable Dataset Snapshot Marker |
+| `ingestion_runs` | **1** | Ingestion Execution Run Log |
 
 ---
 
@@ -43,7 +45,7 @@
 ### Reference Entities vs Acquired Historical Matches
 
 - **Seeded Reference Entities**: 5 countries, 5 competitions, 35 seasons.
-- **Acquired Historical Match Coverage**: **39 matches** across 2 competitions in season `2024/2025`.
+- **Acquired Historical Match Snapshot**: **39 matches** across 2 competitions in season `2024/2025`.
 
 ### Competition & Season Match Matrix
 
@@ -57,6 +59,8 @@
 | `BUNDESLIGA` | German Bundesliga | `2018/2019` – `2024/2025` | 0 (Remote connection refused) |
 | `LIGUE1` | French Ligue 1 | `2018/2019` – `2024/2025` | 0 (Remote connection refused) |
 | **TOTAL** | — | — | **39 Matches** |
+
+*Dataset Description Note: This initial snapshot of 39 verified matches serves as the first verified historical dataset version (`v1.0`) validating the end-to-end acquisition, raw payload preservation, provenance logging, and canonical database schema pipeline. Additional historical seasons will be acquired in supplemental acquisition runs prior to model training in Stage 10–11.*
 
 ---
 
@@ -86,8 +90,7 @@ Total Statistic Records in `match_statistics`: **468** (39 matches × 12 stat ty
 
 ---
 
-## 5. Idempotency & Validation Summary
+## 5. Unresolved Issues & Acquisition Limitations
 
-1. **Zero Fake Football Data**: All 39 match records are real historical fixtures.
-2. **Idempotency**: Re-running ingestion pipeline on identical raw source data produces 0 duplicate matches.
-3. **Zero Future-Data Leakage**: Feature engineering and prediction models are strictly NOT implemented in Stage 6. Raw match outcomes only.
+- **Remote Acquisition Limitation**: Remote HTTP connection refusals occurred for earlier historical seasons (2018/19–2023/24) during online network requests in the sandbox environment. The pipeline handled these network failures safely without throwing unhandled exceptions or corrupting database transactions.
+- **Impact on Stage 7**: This limitation is documented and accepted as an initial dataset sample limitation. It does NOT block Stage 7 (Data Cleaning, Normalization & Validation), as Stage 7 cleans and validates existing canonical database records. Supplemental historical season downloads can be executed independently prior to Stage 10 feature engineering.

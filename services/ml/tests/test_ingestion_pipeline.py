@@ -15,6 +15,7 @@ from services.ml.app.data.pipeline import (  # noqa: E402
 )
 from services.ml.app.db.models import (  # noqa: E402
     Base,
+    ClubSeasonMembershipModel,
     DatasetVersionModel,
     IngestionRunModel,
     MatchModel,
@@ -74,6 +75,9 @@ class TestIngestionPipeline(unittest.TestCase):
         self.assertEqual(matches[0].home_score, 2)
         self.assertEqual(matches[0].away_score, 0)
 
+        memberships = self.session.query(ClubSeasonMembershipModel).all()
+        self.assertEqual(len(memberships), 2)  # Home & away club memberships
+
         raw_payloads = self.session.query(RawSourcePayloadModel).all()
         self.assertGreater(len(raw_payloads), 0)
 
@@ -97,6 +101,10 @@ class TestIngestionPipeline(unittest.TestCase):
         # Total matches count in DB remains 1
         matches_after = self.session.query(MatchModel).all()
         self.assertEqual(len(matches_after), 1)
+
+        # Membership count remains 2
+        memberships_after = self.session.query(ClubSeasonMembershipModel).all()
+        self.assertEqual(len(memberships_after), 2)
 
 
 if __name__ == "__main__":
