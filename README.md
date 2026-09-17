@@ -4,6 +4,8 @@
 [![Stage 2: Architecture & Technology Research](https://img.shields.io/badge/Stage-2%20Complete-green)](#development-stages)
 [![Stage 3: Repository & Application Skeleton](https://img.shields.io/badge/Stage-3%20Complete-green)](#development-stages)
 [![Stage 4: Database Schema & Data Contracts](https://img.shields.io/badge/Stage-4%20Complete-green)](#development-stages)
+[![Stage 5: Data Source Research & Strategy](https://img.shields.io/badge/Stage-5%20Complete-green)](#development-stages)
+[![Stage 6: Historical Dataset Acquisition & Ingestion](https://img.shields.io/badge/Stage-6%20Complete-green)](#development-stages)
 
 A production-quality Football AI Intelligence & Machine-Learning Platform built for real-world football match data ingestion, validation, feature engineering, statistical/ML forecasting, risk evaluation, probability calibration, and auditable prediction reporting.
 
@@ -79,8 +81,8 @@ The core objective is to calculate scientifically sound football event probabili
 - [x] **STAGE 2 — Architecture & Technology Research**
 - [x] **STAGE 3 — Repository, Application Skeleton & Vercel Foundation**
 - [x] **STAGE 4 — Database Schema & Data Contracts**
-- [ ] STAGE 5 — Football Data Source Research & Acquisition Strategy
-- [ ] STAGE 6 — Historical Dataset Acquisition & Ingestion
+- [x] **STAGE 5 — Football Data Source Research & Acquisition Strategy**
+- [x] **STAGE 6 — Historical Dataset Acquisition & Ingestion**
 - [ ] STAGE 7 — Data Cleaning, Normalization & Validation
 - [ ] STAGE 8 — Football Entity & Fixture Identification
 - [ ] STAGE 9 — Feature Engineering Engine
@@ -113,7 +115,13 @@ npm install
 pip install -r requirements.txt
 ```
 
-### Build Contracts & Run Verification Tests
+### Run Historical Data Acquisition
+
+```bash
+python3 scripts/ingest_historical_data.py
+```
+
+### Run Verification Tests & Linter
 
 ```bash
 npm run build --workspace=packages/contracts
@@ -127,4 +135,4 @@ ruff check .
 npm run build --workspace=apps/web
 ```
 
-For detailed setup instructions, refer to [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md), [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md), [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md), and [`docs/DATA_CONTRACTS.md`](docs/DATA_CONTRACTS.md).
+For detailed setup instructions, refer to [`docs/LOCAL_DEVELOPMENT.md`](docs/LOCAL_DEVELOPMENT.md), [`docs/DATA_ACQUISITION_RUNBOOK.md`](docs/DATA_ACQUISITION_RUNBOOK.md), and [`docs/DATA_QUALITY_REPORT.md`](docs/DATA_QUALITY_REPORT.md).
