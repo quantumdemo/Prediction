@@ -85,7 +85,7 @@ class Stage8EntityResolutionPipelineEngine:
                     a_res.canonical_club_id, comp_entity.id, season_entity.id
                 )
 
-            # Fixture Resolution
+            # Fixture Resolution - Raw Matches.csv does not contain explicit external match IDs
             self.fixture_resolver.resolve_fixture_identity(
                 competition_id=comp_entity.id,
                 season_id=season_entity.id,
@@ -96,6 +96,8 @@ class Stage8EntityResolutionPipelineEngine:
                 home_goals=c_data.get("full_time_home_goals", 0),
                 away_goals=c_data.get("full_time_away_goals", 0),
                 result=c_data.get("full_time_result", "D"),
+                source_id="FOOTBALL_DATA_UK",
+                external_match_id=None,  # Explicitly None
             )
 
         summary = {
@@ -127,6 +129,10 @@ class Stage8EntityResolutionPipelineEngine:
                 "duplicates_detected": self.fixture_resolver.duplicates_detected,
                 "conflicts_detected": self.fixture_resolver.conflicts_detected,
                 "stage6_baseline_reconciled": 39,
+            },
+            "external_ids": {
+                "source_external_match_ids_populated": 0,
+                "status": "UNAVAILABLE_FROM_RAW_SOURCE",
             },
             "venues": {
                 "status": "UNAVAILABLE",
