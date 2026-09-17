@@ -1,0 +1,25 @@
+{
+  "source_name": "Club Football Match Data (2000-2025)",
+  "source_url": "https://huggingface.co/datasets/xgabora/club-football-match-data",
+  "github_url": "https://github.com/xgabora/Club-Football-Match-Data",
+  "author": "Adam G\u00e1bor (xgabora)",
+  "retrieval_timestamp": "2026-09-17T02:24:25.778927+00:00",
+  "claimed_license": "MIT License",
+  "files": {
+    "Matches.csv": {
+      "url": "https://huggingface.co/datasets/xgabora/club-football-match-data/raw/main/Matches.csv",
+      "size_bytes": 133,
+      "sha256": "e06c917f0ca76a7143d93709871a63793e729b1cceb00130d923626ac7edab2d"
+    },
+    "EloRatings.csv": {
+      "url": "https://huggingface.co/datasets/xgabora/club-football-match-data/raw/main/EloRatings.csv",
+      "size_bytes": 133,
+      "sha256": "0b2f92738a4252edfa5bb23798ec5da0bdb67a64e214e9339dbe929d27817f1f"
+    },
+    "README.md": {
+      "url": "https://huggingface.co/datasets/xgabora/club-football-match-data/raw/main/README.md",
+      "size_bytes": 19181,
+      "sha256": "24971ccf9243a4355a4aed7e4d06a71ca39c23e94892c3899c23fb5039806244"
+    }
+  }
+}
