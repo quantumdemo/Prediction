@@ -20,16 +20,19 @@ LEAGUE_MAP = {
 }
 
 SEASON_MAP = {
-    "2020/2021": "2021",
-    "2021/2022": "2122",
-    "2022/2023": "2223",
-    "2023/2024": "2324",
     "2024/2025": "2425",
-    "2018/2019": "1819",
+    "2023/2024": "2324",
+    "2022/2023": "2223",
+    "2021/2022": "2122",
+    "2020/2021": "2021",
     "2019/2020": "1920",
+    "2018/2019": "1819",
 }
 
 CACHE_DIR = "/tmp/football_data_cache"
+SAMPLE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../sample_data")
+)
 
 
 class FootballDataUKAdapter(BaseAcquisitionAdapter):
@@ -110,22 +113,30 @@ class FootballDataUKAdapter(BaseAcquisitionAdapter):
         url = self.build_csv_url(season_code, fd_code)
 
         cache_filename = os.path.join(CACHE_DIR, f"{comp_code}_{season_code}.csv")
+        sample_filename = os.path.join(SAMPLE_DIR, f"{fd_code}_20242025.csv")
         csv_text = ""
 
-        # Check local cache
+        # 1. Check local cache
         if os.path.exists(cache_filename):
             with open(cache_filename, "r", encoding="utf-8", errors="ignore") as f:
                 csv_text = f.read()
-        else:
+
+        # 2. HTTP retrieval attempt
+        if not csv_text:
             try:
-                with httpx.Client(timeout=10.0, follow_redirects=True) as client:
+                with httpx.Client(timeout=5.0, follow_redirects=True) as client:
                     resp = client.get(url)
                     if resp.status_code == 200 and resp.text:
                         csv_text = resp.text
                         with open(cache_filename, "w", encoding="utf-8") as f:
                             f.write(csv_text)
             except Exception as e:
-                logger.warning(f"Error fetching {url}: {e}")
+                logger.warning(f"HTTP retrieval unavailable for {url}: {e}")
+
+        # 3. Fallback to bundled real sample CSV if offline
+        if not csv_text and os.path.exists(sample_filename) and season_code == "2425":
+            with open(sample_filename, "r", encoding="utf-8", errors="ignore") as f:
+                csv_text = f.read()
 
         if not csv_text:
             return False, f"Failed fetch for {url}", [], url
