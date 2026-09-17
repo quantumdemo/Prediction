@@ -1,14 +1,14 @@
 """
 Stage 8 Fixture Resolver Engine
 
-Generates stable canonical match/fixture identities, preserves external IDs,
+Generates stable canonical match/fixture identities, preserves true external IDs,
 detects exact/likely/conflicting duplicate fixtures, and performs cross-source reconciliation
 against the 39 Stage 6 baseline matches.
 """
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 @dataclass
@@ -71,7 +71,7 @@ class FixtureResolver:
 
             return existing_fixture
 
-        # Generate deterministic fixture ID
+        # Generate deterministic internal fixture UUID based on canonical fixture context
         fixture_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"fixture:{competition_id}:{match_date}:{home_club_id}:{away_club_id}"))
 
         fixture = CanonicalFixtureEntity(
