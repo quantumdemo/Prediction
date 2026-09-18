@@ -26,6 +26,7 @@ class CanonicalFixtureEntity:
     resolution_status: str = "VERIFIED"  # VERIFIED, LIKELY, UNCERTAIN, CONFLICTING, UNRESOLVED
     reconciliation_status: str = "STANDALONE"  # STANDALONE, RECONCILED_STAGE6_BASELINE
     external_ids: Dict[str, str] = field(default_factory=dict)
+    stats: Dict[str, Any] = field(default_factory=dict)
 
 
 class FixtureResolver:
@@ -53,6 +54,7 @@ class FixtureResolver:
         result: str,
         source_id: str = "FOOTBALL_DATA_UK",
         external_match_id: Optional[str] = None,
+        stats: Optional[Dict[str, Any]] = None,
     ) -> CanonicalFixtureEntity:
         lookup_key = (competition_id, match_date, home_club_id, away_club_id)
 
@@ -86,6 +88,7 @@ class FixtureResolver:
             full_time_away_goals=away_goals,
             full_time_result=result,
             external_ids={source_id: external_match_id} if external_match_id else {},
+            stats=stats or {},
         )
 
         self.fixtures[fixture_id] = fixture

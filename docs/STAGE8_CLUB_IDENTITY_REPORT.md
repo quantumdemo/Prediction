@@ -1,7 +1,7 @@
 # Stage 8 — Club Identity Report
 
 ## Statistics Summary
-* **Raw Team Strings Processed**: **477,674**
+* **Raw Team Strings Processed**: **477,716**
 * **Canonical Clubs Created**: **1,221**
 * **Verified Mappings**: **1,221**
 * **Likely Mappings**: **0**
