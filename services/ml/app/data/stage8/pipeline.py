@@ -98,6 +98,7 @@ class Stage8EntityResolutionPipelineEngine:
                 result=c_data.get("full_time_result", "D"),
                 source_id="FOOTBALL_DATA_UK",
                 external_match_id=None,  # Explicitly None
+                stats=c_data,
             )
 
         summary = {
