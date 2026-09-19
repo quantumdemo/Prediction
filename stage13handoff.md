@@ -53,15 +53,15 @@ DATA SOURCES
 
 DATASETS
 - **Calibration Training Set**: Stage 12 Windows 1–3 out-of-sample forecast predictions (`2020-07-01` to `2023-06-30` | 37,723 OOS matches)
-- **Calibration Evaluation Set**: Stage 12 Window 4 holdout test predictions (`2023-07-01` to `2024-05-28` | 29,203 OOS matches)
+- **Calibration Evaluation / Model-Selection Validation Set**: Stage 12 Window 4 holdout predictions (`2023-07-01` to `2024-05-28` | 29,203 OOS matches), used explicitly as the decision criterion set for model candidate selection.
 
 TESTS RUN
-- `services/ml/tests/test_stage13_calibration.py` (6 test cases)
-- `services/ml/tests/` (All 43 ML test cases)
+- `services/ml/tests/test_stage13_calibration.py` (6 Stage 13 test cases)
+- `services/ml/tests/` (All 49 ML test cases total, including Stage 13 tests)
 - `tests/` (All 52 architecture guard test cases)
 
 TEST RESULTS
-All 95 unit and integration tests passed (100% success rate).
+All 101 unit and integration tests passed (49 ML tests + 52 platform architecture tests = 101 total tests, 100% success rate).
 
 ACCEPTANCE CRITERIA
 - [x] Probability calibration implemented for 1X2, BTTS, and Totals probabilities.
