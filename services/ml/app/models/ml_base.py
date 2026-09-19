@@ -141,10 +141,12 @@ class BaseMLForecaster(BaseStatisticalModel, ABC):
 
     def predict_batch(self, vectors: List[MatchFeatureVector]) -> List[ForecastOutput]:
         """
-        Generates forecast outputs for a batch of fixtures.
+        Generates forecast outputs for a batch of fixtures using vectorized feature transformation.
         """
         if not vectors:
             return []
+        if hasattr(self, "_predict_batch_vectorized"):
+            return self._predict_batch_vectorized(vectors)
         return [self.predict_fixture(v) for v in vectors]
 
     def build_forecast_output(

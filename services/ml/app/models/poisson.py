@@ -85,13 +85,14 @@ class PoissonGoalModel(BaseStatisticalModel):
         log_mu_h = math.log(self.mu_home)
         log_mu_a = math.log(self.mu_away)
 
-        def _neg_log_likelihood(params: np.ndarray) -> float:
+        def _neg_log_likelihood_and_grad(params: np.ndarray):
             gamma = params[0]
             att = params[1 : 1 + n_teams]
             deff = params[1 + n_teams :]
 
-            # Constraint regularization: penalty if mean of att or def strays from 0
-            penalty = 100.0 * (np.sum(att) ** 2 + np.sum(deff) ** 2)
+            sum_att = np.sum(att)
+            sum_def = np.sum(deff)
+            penalty = 100.0 * (sum_att**2 + sum_def**2)
 
             log_lambda_h = log_mu_h + gamma + att[home_indices] + deff[away_indices]
             log_lambda_a = log_mu_a + att[away_indices] + deff[home_indices]
@@ -99,13 +100,26 @@ class PoissonGoalModel(BaseStatisticalModel):
             lambda_h = np.exp(np.clip(log_lambda_h, -5.0, 3.0))
             lambda_a = np.exp(np.clip(log_lambda_a, -5.0, 3.0))
 
-            # Poisson log likelihood: y * log(lambda) - lambda
             ll_h = home_goals * np.log(lambda_h) - lambda_h
             ll_a = away_goals * np.log(lambda_a) - lambda_a
 
-            return -np.sum(ll_h + ll_a) + penalty
+            loss = -np.sum(ll_h + ll_a) + penalty
 
-        res = minimize(_neg_log_likelihood, init_params, method="L-BFGS-B", options={"maxiter": 150})
+            e_h = lambda_h - home_goals
+            e_a = lambda_a - away_goals
+
+            grad_gamma = np.sum(e_h)
+            grad_att = np.bincount(home_indices, weights=e_h, minlength=n_teams) + \
+                       np.bincount(away_indices, weights=e_a, minlength=n_teams) + \
+                       200.0 * sum_att
+            grad_def = np.bincount(away_indices, weights=e_h, minlength=n_teams) + \
+                       np.bincount(home_indices, weights=e_a, minlength=n_teams) + \
+                       200.0 * sum_def
+
+            grad = np.concatenate([[grad_gamma], grad_att, grad_def])
+            return loss, grad
+
+        res = minimize(_neg_log_likelihood_and_grad, init_params, jac=True, method="L-BFGS-B", options={"maxiter": 150})
 
         if res.success or res.x is not None:
             opt_params = res.x

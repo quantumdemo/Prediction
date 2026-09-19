@@ -93,13 +93,20 @@ class DixonColesGoalModel(BaseStatisticalModel):
                 return max(0.001, 1.0 - rho)
             return 1.0
 
-        def _neg_log_likelihood(params: np.ndarray) -> float:
+        mask_00 = (home_goals == 0) & (away_goals == 0)
+        mask_10 = (home_goals == 1) & (away_goals == 0)
+        mask_01 = (home_goals == 0) & (away_goals == 1)
+        mask_11 = (home_goals == 1) & (away_goals == 1)
+
+        def _neg_log_likelihood_and_grad(params: np.ndarray):
             gamma = params[0]
             rho = np.clip(params[1], -0.25, 0.25)
             att = params[2 : 2 + n_teams]
             deff = params[2 + n_teams :]
 
-            penalty = 100.0 * (np.sum(att) ** 2 + np.sum(deff) ** 2)
+            sum_att = np.sum(att)
+            sum_def = np.sum(deff)
+            penalty = 100.0 * (sum_att**2 + sum_def**2)
 
             log_lambda_h = log_mu_h + gamma + att[home_indices] + deff[away_indices]
             log_lambda_a = log_mu_a + att[away_indices] + deff[home_indices]
@@ -107,23 +114,61 @@ class DixonColesGoalModel(BaseStatisticalModel):
             lambda_h = np.exp(np.clip(log_lambda_h, -5.0, 3.0))
             lambda_a = np.exp(np.clip(log_lambda_a, -5.0, 3.0))
 
-            # Base Poisson log probabilities
             ll_h = home_goals * np.log(lambda_h) - lambda_h
             ll_a = away_goals * np.log(lambda_a) - lambda_a
 
-            # Dixon-Coles tau adjustment
             tau_vals = np.ones(len(valid_vectors))
-            for idx in range(len(valid_vectors)):
-                hg = home_goals[idx]
-                ag = away_goals[idx]
-                if hg <= 1 and ag <= 1:
-                    tau_vals[idx] = _dixon_coles_tau(hg, ag, lambda_h[idx], lambda_a[idx], rho)
+            dtau_dlh = np.zeros(len(valid_vectors))
+            dtau_dla = np.zeros(len(valid_vectors))
+            dtau_drho = np.zeros(len(valid_vectors))
 
-            ll_tau = np.log(np.maximum(1e-6, tau_vals))
+            if np.any(mask_00):
+                lh = lambda_h[mask_00]
+                la = lambda_a[mask_00]
+                denom = np.maximum(0.001, 1.0 - lh * la * rho)
+                tau_vals[mask_00] = denom
+                dtau_dlh[mask_00] = -la * rho / denom
+                dtau_dla[mask_00] = -lh * rho / denom
+                dtau_drho[mask_00] = -lh * la / denom
 
-            return -np.sum(ll_h + ll_a + ll_tau) + penalty
+            if np.any(mask_10):
+                la = lambda_a[mask_10]
+                denom = np.maximum(0.001, 1.0 + la * rho)
+                tau_vals[mask_10] = denom
+                dtau_dla[mask_10] = rho / denom
+                dtau_drho[mask_10] = la / denom
 
-        res = minimize(_neg_log_likelihood, init_params, method="L-BFGS-B", options={"maxiter": 150})
+            if np.any(mask_01):
+                lh = lambda_h[mask_01]
+                denom = np.maximum(0.001, 1.0 + lh * rho)
+                tau_vals[mask_01] = denom
+                dtau_dlh[mask_01] = rho / denom
+                dtau_drho[mask_01] = lh / denom
+
+            if np.any(mask_11):
+                denom = np.maximum(0.001, 1.0 - rho)
+                tau_vals[mask_11] = denom
+                dtau_drho[mask_11] = -1.0 / denom
+
+            ll_tau = np.log(tau_vals)
+            loss = -np.sum(ll_h + ll_a + ll_tau) + penalty
+
+            e_h = lambda_h - home_goals - lambda_h * dtau_dlh
+            e_a = lambda_a - away_goals - lambda_a * dtau_dla
+
+            grad_gamma = np.sum(e_h)
+            grad_rho = -np.sum(dtau_drho)
+            grad_att = np.bincount(home_indices, weights=e_h, minlength=n_teams) + \
+                       np.bincount(away_indices, weights=e_a, minlength=n_teams) + \
+                       200.0 * sum_att
+            grad_def = np.bincount(away_indices, weights=e_h, minlength=n_teams) + \
+                       np.bincount(home_indices, weights=e_a, minlength=n_teams) + \
+                       200.0 * sum_def
+
+            grad = np.concatenate([[grad_gamma, grad_rho], grad_att, grad_def])
+            return loss, grad
+
+        res = minimize(_neg_log_likelihood_and_grad, init_params, jac=True, method="L-BFGS-B", options={"maxiter": 150})
 
         if res.success or res.x is not None:
             opt_params = res.x

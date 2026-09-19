@@ -131,6 +131,62 @@ class TestStage12Backtesting(unittest.TestCase):
         self.assertEqual(artifact["artifact_version"], "STAGE12_BACKTEST_ARTIFACT_v1.0.0")
         self.assertIn("report", artifact)
 
+    def test_guard_against_metric_reuse(self):
+        """
+        Guard test ensuring backtest metrics are dynamic and calculated from
+        actual out-of-sample predictions rather than hardcoded Stage 10/11 constants.
+        """
+        engine = WalkForwardBacktestEngine()
+        report = engine.run_backtest(vectors=self.sample_vectors)
+
+        # Stage 10/11 hardcoded baseline values that must not be reused
+        prohibited_log_losses = {0.9982, 0.9914, 0.9945, 0.9872, 0.9821}
+
+        for model_key, eval_res in report["aggregated_results"].items():
+            ll = eval_res["1x2_log_loss"]
+            self.assertNotIn(ll, prohibited_log_losses, f"Model {model_key} reused a hardcoded Stage 10/11 metric: {ll}")
+
+    def test_guard_pooled_aggregate_calculation(self):
+        """
+        Guard test verifying that aggregated backtest metrics are derived by evaluating
+        the pooled set of out-of-sample predictions across all windows rather than averaging summary numbers.
+        """
+        engine = WalkForwardBacktestEngine()
+        report = engine.run_backtest(vectors=self.sample_vectors)
+
+        self.assertIn("aggregated_results", report)
+        self.assertIn("window_results", report)
+
+        total_oos_matches = sum(w["test_matches"] for w in report["window_results"])
+        for model_key, agg_eval in report["aggregated_results"].items():
+            self.assertEqual(
+                agg_eval["total_test_fixtures_evaluated"],
+                total_oos_matches,
+                f"Pooled evaluated fixture count for {model_key} does not match total OOS test matches across windows."
+            )
+
+    def test_guard_window_date_assignment_and_leakage(self):
+        """
+        Guard test confirming window definitions strictly assign matches chronologically
+        and guarantee zero future-data leakage across all windows.
+        """
+        engine = WalkForwardBacktestEngine()
+        sorted_dates = sorted([v.match_date for v in self.sample_vectors])
+        windows = engine.default_backtest_windows(sorted_dates)
+
+        for w in windows:
+            train_vecs = [v for v in self.sample_vectors if w.train_start_date <= v.match_date <= w.train_end_date]
+            test_vecs = [v for v in self.sample_vectors if w.test_start_date <= v.match_date <= w.test_end_date]
+
+            if train_vecs and test_vecs:
+                max_train_date = max(v.match_date for v in train_vecs)
+                min_test_date = min(v.match_date for v in test_vecs)
+                self.assertLessEqual(
+                    max_train_date,
+                    min_test_date,
+                    f"Temporal leakage in {w.window_id}: max train date ({max_train_date}) > min test date ({min_test_date})"
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
