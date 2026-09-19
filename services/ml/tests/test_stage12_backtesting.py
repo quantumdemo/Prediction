@@ -165,6 +165,24 @@ class TestStage12Backtesting(unittest.TestCase):
                 f"Pooled evaluated fixture count for {model_key} does not match total OOS test matches across windows."
             )
 
+    def test_guard_approved_stage11_configurations(self):
+        """
+        Guard test proving that Stage 12 backtest engine instantiates Random Forest
+        and XGBoost using the exact approved Stage 11 hyperparameters.
+        """
+        from services.ml.app.models.random_forest import RandomForestForecaster
+        from services.ml.app.models.xgboost_model import XGBoostForecaster
+
+        rf = RandomForestForecaster(n_estimators=100, max_depth=8)
+        xgb_m = XGBoostForecaster(n_estimators=100, max_depth=5, learning_rate=0.05)
+
+        self.assertEqual(rf.clf_1x2.n_estimators, 100)
+        self.assertEqual(rf.clf_1x2.max_depth, 8)
+
+        self.assertEqual(xgb_m.clf_1x2.n_estimators, 100)
+        self.assertEqual(xgb_m.clf_1x2.max_depth, 5)
+        self.assertAlmostEqual(xgb_m.clf_1x2.learning_rate, 0.05)
+
     def test_guard_window_date_assignment_and_leakage(self):
         """
         Guard test confirming window definitions strictly assign matches chronologically

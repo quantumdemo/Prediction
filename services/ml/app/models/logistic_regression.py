@@ -23,9 +23,9 @@ class LogisticRegressionForecaster(BaseMLForecaster):
     def __init__(self, max_goals: int = 10, n_jobs: int = -1):
         super().__init__(model_name="LogisticRegressionForecaster", model_version="1.0.0")
         self.max_goals = max_goals
-        self.clf_1x2 = LogisticRegression(solver="lbfgs", max_iter=500, random_state=42, n_jobs=n_jobs)
-        self.clf_btts = LogisticRegression(solver="lbfgs", max_iter=500, random_state=42, n_jobs=n_jobs)
-        self.clf_over25 = LogisticRegression(solver="lbfgs", max_iter=500, random_state=42, n_jobs=n_jobs)
+        self.clf_1x2 = LogisticRegression(solver="lbfgs", max_iter=200, random_state=42)
+        self.clf_btts = LogisticRegression(solver="lbfgs", max_iter=200, random_state=42)
+        self.clf_over25 = LogisticRegression(solver="lbfgs", max_iter=200, random_state=42)
         self.reg_home_goals = Ridge(alpha=1.0, random_state=42)
         self.reg_away_goals = Ridge(alpha=1.0, random_state=42)
 
