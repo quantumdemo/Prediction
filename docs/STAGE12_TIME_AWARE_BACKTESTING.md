@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-Stage 12 implements the platform's formal multi-window walk-forward backtesting system. The purpose of this layer is to rigorously evaluate the empirical predictive performance and stability of all Stage 10 statistical models (`PoissonGoalModel`, `DixonColesGoalModel`, `EmpiricalBaselineModel`) and Stage 11 ML models (`LogisticRegressionForecaster`, `RandomForestForecaster`, `XGBoostForecaster`) across multiple sequential chronological time horizons.
+Stage 12 implements the platform's formal multi-window walk-forward backtesting system. The purpose of this layer is to rigorously evaluate the empirical predictive performance and stability of all Stage 10 statistical models (`PoissonGoalModel`, `DixonColesGoalModel`, `EmpiricalBaselineModel`) and Stage 11 ML models (`LogisticRegressionForecaster`, `RandomForestForecaster`, `XGBoostForecaster`) across multiple sequential chronological time horizons using the exact approved Stage 11 model configurations.
 
 All backtesting strictly enforces zero future-data leakage ($T_{\text{train\_max}} < T_{\text{test\_min}}$), fits imputation transformers strictly on training window data ($X_{\text{train}}$), and evaluates models across 1X2, Total Goals, BTTS, and expected goals markets.
 
@@ -51,9 +51,9 @@ Across the historical dataset (`STAGE9_FEATURE_DATASET_v1.0.0`):
 | **Stage 10 Statistical** | Empirical Baseline | 1.07691 | 0.65178 | 0.22903 | 1.024 | 0.869 | 0.25019 | 0.24945 |
 | **Stage 10 Statistical** | Poisson Goal Model | 1.04387 | 0.62792 | 0.21742 | 0.977 | 0.859 | 0.24888 | 0.24997 |
 | **Stage 10 Statistical** | Dixon-Coles Goal Model | 1.04331 | 0.62751 | 0.21732 | 0.977 | 0.859 | 0.24871 | 0.24973 |
-| **Stage 11 ML** | Logistic Regression | 1.03406 | 0.62128 | 0.21429 | 0.969 | 0.853 | 0.24722 | 0.24885 |
-| **Stage 11 ML** | Random Forest | 1.04015 | 0.62543 | 0.21630 | 0.974 | 0.847 | 0.24752 | 0.24887 |
-| **Stage 11 ML** | XGBoost Forecaster | 1.03456 | 0.62159 | 0.21451 | 0.974 | 0.846 | 0.24705 | 0.24865 |
+| **Stage 11 ML** | Logistic Regression | 1.03524 | 0.62212 | 0.21466 | 0.969 | 0.853 | 0.24722 | 0.24890 |
+| **Stage 11 ML** | Random Forest (`n=100, d=8`) | 1.03670 | 0.62303 | 0.21516 | 0.971 | 0.847 | 0.24722 | 0.24880 |
+| **Stage 11 ML** | **XGBoost Forecaster** (`n=100, d=5, lr=0.05`) | **1.03101** | **0.61912** | **0.21323** | **0.968** | **0.847** | **0.24668** | **0.24854** |
 
 ### 4.2 Out-of-Sample Window Stability Comparison (1X2 Log Loss by Window)
 
@@ -62,17 +62,17 @@ Across the historical dataset (`STAGE9_FEATURE_DATASET_v1.0.0`):
 | **Empirical Baseline** | 1.08452 | 1.07685 | 1.07183 | 1.07578 | 1.07691 |
 | **Poisson Goal Model** | 1.05171 | 1.04141 | 1.03800 | 1.04402 | 1.04387 |
 | **Dixon-Coles Model** | 1.05155 | 1.04107 | 1.03757 | 1.04315 | 1.04331 |
-| **Logistic Regression** | 1.04504 | 1.03642 | 1.02927 | 1.03029 | 1.03406 |
-| **Random Forest** | 1.04956 | 1.04290 | 1.03422 | 1.03738 | 1.04015 |
-| **XGBoost Forecaster** | 1.04437 | 1.03715 | 1.03002 | 1.03111 | 1.03456 |
+| **Logistic Regression** | 1.04627 | 1.03799 | 1.02961 | 1.03165 | 1.03524 |
+| **Random Forest (`n=100, d=8`)** | 1.04673 | 1.03959 | 1.03029 | 1.03382 | 1.03670 |
+| **XGBoost Forecaster (`n=100, d=5, lr=0.05`)** | **1.04138** | **1.03288** | **1.02455** | **1.02844** | **1.03101** |
 
 ---
 
 ## 5. Objective Model Comparison Findings
 
-1. **Supervised ML Superiority**: Supervised ML models (`LogisticRegressionForecaster` and `XGBoostForecaster`) consistently achieved the lowest error rates (Log Loss ~1.034) across all 4 walk-forward historical windows, outperforming parametric goal models.
-2. **Parametric Goal Baselines**: Dixon-Coles maintained robust baseline performance across all windows (Log Loss 1.04331), slightly outperforming independent Poisson (1.04387) due to low-score correlation adjustments.
-3. **Window Stability**: All models exhibited stable error profiles across multi-season test windows, confirming feature distribution stability without temporal degradation.
+1. **Approved Stage 11 Model Alignment**: Re-evaluation using exact Stage 11 approved configurations (`n_estimators=100, max_depth=8` for RF; `n_estimators=100, max_depth=5, learning_rate=0.05` for XGBoost) confirms that XGBoost Forecaster achieves the lowest out-of-sample error across all test windows (Log Loss 1.03101, Brier 0.61912, RPS 0.21323).
+2. **Gradient Boosted Trees Dominance**: XGBoost demonstrated superior capability in capturing complex non-linear feature interactions across match statistics, form differentials, and Elo ratings compared to Random Forest (Log Loss 1.03670) and Logistic Regression (1.03524).
+3. **Parametric Goal Baselines**: Dixon-Coles maintained robust baseline performance across all windows (Log Loss 1.04331), slightly outperforming independent Poisson (1.04387) due to low-score correlation adjustments.
 
 ---
 

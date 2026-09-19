@@ -82,8 +82,8 @@ def run_single_window(window_idx: int):
         "dixon_coles": DixonColesGoalModel(),
         "empirical": EmpiricalBaselineModel(),
         "logistic_regression": LogisticRegressionForecaster(),
-        "random_forest": RandomForestForecaster(n_estimators=50, max_depth=6),
-        "xgboost": XGBoostForecaster(n_estimators=50, max_depth=4),
+        "random_forest": RandomForestForecaster(n_estimators=100, max_depth=8),
+        "xgboost": XGBoostForecaster(n_estimators=100, max_depth=5, learning_rate=0.05),
     }
 
     w_model_evals = {}
