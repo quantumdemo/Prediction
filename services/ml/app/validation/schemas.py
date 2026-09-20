@@ -2,7 +2,7 @@
 Stage 22 Shadow Validation & Historical Validation Schemas
 
 Data contracts for shadow predictions, fixture evaluation records, aggregate metrics,
-no-leakage guards, and machine-readable Stage 22 artifacts.
+no-leakage guards, model provenance tracking, and machine-readable Stage 22 artifacts.
 """
 
 from typing import Any, Dict, List, Optional
@@ -124,4 +124,7 @@ class ShadowValidationArtifact(BaseModel):
     data_quality: DataQualityValidationSummary
     aggregate_metrics: ValidationAggregateMetrics
     records: List[FixtureEvaluationRecord] = Field(default_factory=list)
-    leakage_guard_status: str = "VERIFIED_NO_LEAKAGE"
+    pre_match_input_leakage_status: str = "VERIFIED_NO_INPUT_LEAKAGE"
+    is_unseen_out_of_sample: bool = False
+    model_selection_overlap_period: str = "Window 4 (2023-07-01 to 2024-05-28)"
+    statistical_interpretation: str = "HISTORICAL_SELECTION_SET_REPLAY (Metrics represent selection-set replay performance and NOT an unbiased out-of-sample performance estimate)."

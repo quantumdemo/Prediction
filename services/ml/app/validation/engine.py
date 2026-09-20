@@ -5,6 +5,7 @@ Executes controlled historical shadow validation across real pre-match feature v
 and approved production forecaster (`xgboost_platt` from Stage 13).
 Guarantees strict temporal separation: PREDICTION INPUT DATA is kept completely isolated
 from POST-PREDICTION EVALUATION DATA (actual outcomes).
+Tracks model provenance and statistical interpretation when evaluation overlaps Stage 13 selection dates.
 """
 
 import json
@@ -254,6 +255,16 @@ class ShadowValidationEngine:
             eligible_count=eligible_count,
         )
 
+        # Audit Stage 13 model selection overlap
+        stage13_selection_end = "2024-05-28"
+        has_selection_overlap = self.evaluation_period_start <= stage13_selection_end
+
+        stat_interp = (
+            "HISTORICAL_SELECTION_SET_REPLAY (Metrics represent selection-set replay performance and NOT an unbiased out-of-sample performance estimate)."
+            if has_selection_overlap
+            else "UNSEEN_OUT_OF_SAMPLE_VALIDATION (Metrics represent unbiased out-of-sample performance on fixtures strictly after Stage 13 model selection)."
+        )
+
         artifact = ShadowValidationArtifact(
             run_id=run_id,
             generated_at_utc=datetime.now(timezone.utc).isoformat(),
@@ -270,7 +281,10 @@ class ShadowValidationEngine:
             data_quality=data_summary,
             aggregate_metrics=agg_metrics,
             records=records,
-            leakage_guard_status="VERIFIED_NO_LEAKAGE",
+            pre_match_input_leakage_status="VERIFIED_NO_INPUT_LEAKAGE",
+            is_unseen_out_of_sample=not has_selection_overlap,
+            model_selection_overlap_period="Window 4 (2023-07-01 to 2024-05-28)",
+            statistical_interpretation=stat_interp,
         )
 
         # Export artifact to disk

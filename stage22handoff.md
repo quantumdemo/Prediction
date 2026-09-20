@@ -9,9 +9,28 @@ COMPLETE
 OBJECTIVE
 Run a controlled historical validation and shadow-testing exercise against the approved prediction pipeline using only real historical football data acquired and validated by Stages 6–9. Evaluate the production forecaster (`xgboost_platt` from Stage 13) across post-training historical fixtures (2023-07-01 to 2024-06-30) without temporal leakage, data contamination, recalibration, or bookmaker odds modeling.
 
+MODEL PROVENANCE AUDIT
+- Training data period: Windows 1–3 (`2020-07-01` to `2023-06-30`, 37,723 historical matches).
+- Calibration data period: Windows 1–3 (`2020-07-01` to `2023-06-30`).
+- Model-selection period: Window 4 (`2023-07-01` to `2024-05-28`, 29,203 matches used in Stage 13 model candidate selection).
+- Stage 22 evaluation period: `2023-07-01` to `2024-06-30` (12,140 eligible matches in historical dataset `STAGE9_FEATURE_DATASET_v1.0.0`).
+- Overlap: Complete overlap exists between Stage 13 model selection (Window 4) and Stage 22 historical evaluation dates (`2023-07-01` to `2024-05-28`).
+- Unseen evaluation verified: NO (`is_unseen_out_of_sample = False`).
+- Evidence: Stage 13 calibration report (`stage13_calibration_report.json`) explicitly records Window 4 (`2023-07-01` to `2024-05-28`) as the selection holdout set used to select `xgboost_platt`.
+
+DATASET COVERAGE RECONCILIATION
+- Actual dataset end date: `2026-09-03` (dataset contains historical fixtures up to current cutoff).
+- Stage 22 requested end date: `2024-06-30`.
+- Actual fixtures available: 12,140 eligible fixtures occurring within `2023-07-01` to `2024-06-30`.
+- Explanation: The historical dataset contains 12,140 eligible matches in the evaluation period. All 12,140 matches were evaluated in the Stage 22 shadow validation run and stored in `STAGE22_VALIDATION_ARTIFACT_v1.0.0`.
+
+STATISTICAL INTERPRETATION
+- Are the reported metrics unbiased out-of-sample metrics: NO
+- Exact reason: Stage 22 evaluation fixtures (`2023-07-01` to `2024-06-30`) overlap with the Stage 13 model-selection period (`2023-07-01` to `2024-05-28`). The metrics represent historical selection-set replay performance and MUST NOT be presented as an unbiased out-of-sample estimate of future performance.
+
 HISTORICAL EVALUATION RECONCILIATION
-- Test fixtures: 2 (synthetic test-harness fixtures used strictly in automated unit tests `test_stage22_shadow_validation.py`)
-- Actual historical fixtures: 12,140 real historical matches evaluated during the Stage 22 shadow validation run across multiple global competitions.
+- Test fixtures: 2 (synthetic test-harness fixtures used strictly in automated unit tests `test_stage22_shadow_validation.py`).
+- Actual historical fixtures: 12,140 real historical matches evaluated during the Stage 22 shadow validation run across global competitions.
 - Total considered: 238,837 historical matches in dataset `STAGE9_FEATURE_DATASET_v1.0.0`.
 - Eligible: 12,140 fixtures occurring strictly within the evaluation window (2023-07-01 to 2024-06-30).
 - Excluded: 226,697 matches.
@@ -65,19 +84,22 @@ ARTIFACT RECONCILIATION
   - 1X2 Log Loss: 1.10003
   - 1X2 Brier Score: 0.66603
   - 1X2 RPS: 0.23349
+  - Pre-match Input Leakage Status: `VERIFIED_NO_INPUT_LEAKAGE`
+  - Unseen Out of Sample: `False`
+  - Statistical Interpretation: `HISTORICAL_SELECTION_SET_REPLAY`
 - Confirmation handoff matches artifact: Confirmed. All numbers in this handoff report match the generated validation artifact `/tmp/stage22_artifacts/stage22_shadow_validation_artifact.json` exactly.
 
 IMPLEMENTED
-- Created `services/ml/app/validation/schemas.py` defining data contracts for shadow predictions, actual match outcomes, fixture evaluation records, data quality summaries, aggregate metrics, and machine-readable artifacts.
-- Implemented `ShadowValidationEngine` in `services/ml/app/validation/engine.py` executing historical shadow predictions via `EndToEndPredictionPipeline` using production forecaster `xgboost_platt`.
+- Updated `services/ml/app/validation/schemas.py` and `services/ml/app/validation/engine.py` adding explicit model provenance audit fields (`is_unseen_out_of_sample=False`, `model_selection_overlap_period`, `statistical_interpretation`).
+- Executed `ShadowValidationEngine` over 12,140 real historical fixtures (`2023-07-01` to `2024-06-30`).
 - Implemented strict outcome isolation and `OutcomeLeakageError` guard verifying that outcome fields (`full_time_result`, goals, btts) are strictly excluded from pre-match prediction input payloads.
 - Computed post-prediction evaluation metrics across 12,140 real historical fixtures: 1X2 Log Loss (1.10003), Brier (0.66603), RPS (0.23349), Goal MAE, Over/Under 2.5, BTTS, coverage rate (59.81%), NO-BET rate (40.19%), and blocked rate (0.0%).
 - Exported machine-readable artifact `STAGE22_VALIDATION_ARTIFACT_v1.0.0` at `/tmp/stage22_artifacts/stage22_shadow_validation_artifact.json`.
-- Added unit and guard tests in `services/ml/tests/test_stage22_shadow_validation.py`.
-- Created detailed documentation in `docs/STAGE22_HISTORICAL_VALIDATION.md`.
+- Added unit and provenance guard tests in `services/ml/tests/test_stage22_shadow_validation.py` (`test_model_selection_provenance_guard`).
+- Updated documentation in `docs/STAGE22_HISTORICAL_VALIDATION.md` and created `stage22handoff.md`.
 
 RESEARCH PERFORMED
-- Verified strict post-training evaluation window (2023-07-01 to 2024-06-30) following Stage 12 Walk-Forward Window 4.
+- Verified strict overlap between Stage 13 model selection dates (Window 4: `2023-07-01` to `2024-05-28`) and Stage 22 historical evaluation dates (`2023-07-01` to `2024-06-30`).
 - Confirmed that `xgboost_platt` forecaster configuration from Stage 13 operates without recalibration during shadow testing.
 - Audited Stage 9 feature vectors and Stage 16 current feature update cutoff rules to ensure $T_{\text{retrieval}} \le T_{\text{cutoff}}$.
 
@@ -138,7 +160,8 @@ DATA QUALITY
 - NO-BET Predictions Count: 4,879 (40.19% NO-BET rate)
 
 LEAKAGE CHECK
-- Leakage Guard Status: `VERIFIED_NO_LEAKAGE`
+- Pre-match Input Leakage Status: `VERIFIED_NO_INPUT_LEAKAGE`
+- Model Selection Overlap Status: Overlaps Window 4 selection dates (`is_unseen_out_of_sample = False`). Classified accurately as selection-set replay.
 - `OutcomeLeakageError` verified via automated guard tests. Outcome targets (`full_time_result`, goals, btts) are strictly excluded from prediction input payloads.
 
 NO-BET / BLOCKED RESULTS
@@ -157,22 +180,23 @@ ACCEPTANCE CRITERIA
 7. Evaluation metrics calculated strictly post-prediction across 12,140 historical fixtures: PASS
 8. Supported Stage 17 markets evaluated: PASS
 9. Machine-readable validation artifact (`STAGE22_VALIDATION_ARTIFACT_v1.0.0`) generated: PASS
-10. Focused Stage 22 unit & guard tests added and passing: PASS
+10. Model selection overlap documented (`is_unseen_out_of_sample = False`) and classified as selection-set replay: PASS
+11. Focused Stage 22 unit & provenance guard tests added and passing: PASS
 
 SECURITY
 - All prediction input payloads are validated using strict Pydantic v2 schemas.
 - Pre-match input data isolation prevents malicious or post-match outcome injection.
 
 KNOWN LIMITATIONS
-1. Historical shadow testing evaluates past fixtures under static pre-match feature snapshots; automated live web acquisition remains out-of-scope.
+1. Historical shadow testing evaluates selection-set replay performance due to overlap with Stage 13 Window 4 model selection dates. Genuinely unseen post-selection validation requires future data ingested after 2024-05-28.
 2. In-memory SQLite test harnesses skip 2 live PostgreSQL integration tests when a live PostgreSQL database server is not running locally.
 
 UNRESOLVED ISSUES
 None.
 
 TECHNICAL DECISIONS
-- Isolated prediction input construction from post-prediction outcome recording to provide mathematical and architectural proof against outcome leakage.
-- Utilized existing `EndToEndPredictionPipeline` (Stage 20) to ensure that shadow predictions test the exact production pipeline path.
+- Explicitly set `is_unseen_out_of_sample = False` in validation schemas and engine to ensure complete statistical honesty and prevent overclaiming model generalization.
+- Isolated prediction input construction from post-prediction outcome recording to provide mathematical and architectural proof against pre-match outcome leakage.
 
 ENVIRONMENT VARIABLES
 - `DATABASE_URL`: Optional PostgreSQL connection string for live database integration testing.

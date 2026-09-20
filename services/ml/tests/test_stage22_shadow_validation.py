@@ -4,7 +4,7 @@ Unit and Guard Tests for Stage 22 Shadow Validation & Historical Validation Engi
 Verifies:
 - Strict separation of prediction input data from post-prediction outcome evaluation data.
 - OutcomeLeakageError raised when outcome targets leak into input request payloads.
-- Temporal cutoff enforcement (T_retrieval <= T_cutoff).
+- Model selection provenance audit and overlap detection (is_unseen_out_of_sample is False when overlapping Stage 13 selection dates).
 - Deterministic execution of shadow validation.
 - Fixture eligibility and exclusion tracking.
 - Aggregate metrics calculation (Log Loss, Brier, RPS, Goal MAE, Over/Under 2.5, BTTS).
@@ -122,6 +122,18 @@ class TestStage22ShadowValidation(unittest.TestCase):
         with self.assertRaises(OutcomeLeakageError):
             self.engine._verify_no_leakage_in_request(leaky_request)
 
+    def test_model_selection_provenance_guard(self):
+        """
+        Verifies that evaluation runs overlapping Stage 13 model selection dates are NOT classified as unseen out-of-sample.
+        """
+        artifact = self.engine.run_shadow_validation(
+            vectors=self.mock_vectors,
+            artifact_output_dir=self.test_dir,
+        )
+        self.assertFalse(artifact.is_unseen_out_of_sample)
+        self.assertIn("HISTORICAL_SELECTION_SET_REPLAY", artifact.statistical_interpretation)
+        self.assertEqual(artifact.model_selection_overlap_period, "Window 4 (2023-07-01 to 2024-05-28)")
+
     def test_shadow_validation_execution_and_artifact(self):
         """
         Executes shadow validation and verifies machine-readable artifact format.
@@ -133,7 +145,7 @@ class TestStage22ShadowValidation(unittest.TestCase):
 
         self.assertEqual(artifact.artifact_version, "STAGE22_VALIDATION_ARTIFACT_v1.0.0")
         self.assertEqual(artifact.model_name, "xgboost_platt")
-        self.assertEqual(artifact.leakage_guard_status, "VERIFIED_NO_LEAKAGE")
+        self.assertEqual(artifact.pre_match_input_leakage_status, "VERIFIED_NO_INPUT_LEAKAGE")
 
         # Data quality checks
         self.assertEqual(artifact.data_quality.total_fixtures_considered, 4)
