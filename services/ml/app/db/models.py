@@ -8,6 +8,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -123,6 +124,10 @@ class ClubAliasModel(Base):
     source_id = Column(String(36), ForeignKey("sources.id", ondelete="SET NULL"))
     created_at_utc = Column(DateTime, nullable=False, default=default_utc_now)
 
+    __table_args__ = (
+        Index("idx_club_aliases_name", "alias_name"),
+    )
+
 
 class ClubExternalIdModel(Base):
     __tablename__ = "club_external_ids"
@@ -224,6 +229,8 @@ class MatchModel(Base):
 
     __table_args__ = (
         CheckConstraint("home_club_id <> away_club_id", name="chk_different_clubs"),
+        Index("idx_matches_kickoff_status", "scheduled_kickoff_utc", "status"),
+        Index("idx_matches_clubs", "home_club_id", "away_club_id"),
     )
 
 
@@ -372,3 +379,8 @@ class PredictionReportModel(Base):
     report_payload_json = Column(Text, nullable=False)
     audit_hash = Column(String(64), nullable=False)
     created_at_utc = Column(DateTime, nullable=False, default=default_utc_now)
+
+    __table_args__ = (
+        Index("idx_pred_reports_fixture_ts", "fixture_id", "prediction_timestamp_utc"),
+        Index("idx_pred_reports_status_ts", "decision_status", "created_at_utc"),
+    )
