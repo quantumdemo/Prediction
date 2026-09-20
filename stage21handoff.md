@@ -6,29 +6,30 @@ Stage 21 — Full System Audit
 STATUS: COMPLETE
 
 AUDIT OBJECTIVE
-Audit the entire implemented football AI intelligence and machine-learning platform (Stages 1 through 20) against the approved 26-stage specification, system architecture contracts, and engineering constitution. Verify that zero temporal leakage, strict evidence provenance, explicit risk/NO-BET rules, probability calibration, auditable reporting, security boundaries, and database schemas are fully implemented without missing stages, synthetic data, uncalibrated odds modeling, or unauthorized stage bypasses.
+Audit the entire implemented football AI intelligence and machine-learning platform (Stages 1 through 20) against the approved 26-stage specification, system architecture contracts, and engineering constitution. Verify that temporal-leakage controls, strict evidence provenance, explicit risk/NO-BET rules, probability calibration, auditable reporting, security boundaries, and database schemas are implemented without missing stages, synthetic data, uncalibrated odds modeling, or unauthorized stage bypasses.
 
 STAGES REVIEWED
-- Stage 1: Domain Boundaries & System Scope
-- Stage 2: System Architecture & Data Flow Design
-- Stage 3: Entity Resolution & Football Data Model
-- Stage 4: Historical Data Ingestion & Field Audit
-- Stage 5: Canonical Football Data Lake Architecture
-- Stage 6: Database Schema & Migration Foundation
-- Stage 7: Raw Data Cleaning & Verification Pipeline
-- Stage 8: Data Cleansing & Deduplication
-- Stage 9: Deterministic Pre-Match Feature Engine (STAGE9_FEATURE_DATASET_v1.0.0)
-- Stage 10: Parametric Statistical Baseline Models (Poisson, Dixon-Coles, Empirical)
-- Stage 11: Supervised ML Forecasters (Logistic Regression, Random Forest, XGBoost)
-- Stage 12: Time-Aware Historical Walk-Forward Backtesting Engine
-- Stage 13: Probability Calibration & Model Selection Engine (Platt / Isotonic, `xgboost_platt`)
-- Stage 14: Current-Match Web Research Engine & Entity Resolution
-- Stage 15: Current Match Evidence Validation & Provenance Engine
-- Stage 16: Current Feature Update & Prediction-Time Forecasting Engine
-- Stage 17: Controlled Market Catalogue & Mapping Engine (8 Supported Markets)
-- Stage 18: Risk Engine, Confidence Scoring & NO-BET Framework
-- Stage 19: Auditable Prediction Reporting & Prediction History Engine
-- Stage 20: Complete Prediction Integration Pipeline (`EndToEndPredictionPipeline`)
+- Stage 1 — Master Specification & Engineering Constitution
+- Stage 2 — Architecture & Technology Research
+- Stage 3 — Repository/Project Skeleton + Vercel Deployment Foundation
+- Stage 4 — Database Schema + Data Contracts
+- Stage 5 — Data-Source Research + Acquisition Strategy
+- Stage 6 — Historical Dataset Acquisition + Ingestion
+- Stage 7 — Data Cleaning, Normalization + Validation
+- Stage 8 — Football Entity/Fixture Identification
+- Stage 9 — Feature Engineering Engine
+- Stage 10 — Statistical Baseline Models
+- Stage 11 — ML Forecasting Models
+- Stage 12 — Time-Aware Backtesting
+- Stage 13 — Probability Calibration + Model Selection
+- Stage 14 — Current-Match Web Research Engine
+- Stage 15 — Evidence/Provenance + Current-Data Validation
+- Stage 16 — Current-Match Feature Update + Forecasting Pipeline
+- Stage 17 — Market Catalogue + Market Mapping
+- Stage 18 — Risk/Confidence/NO-BET Engine
+- Stage 19 — Auditable Prediction Report + Prediction History
+- Stage 20 — Complete Prediction Pipeline Integration
+- Stage 21 — Full System Audit
 
 ARCHITECTURE FINDINGS
 - **Modular Monolith Boundaries**: All 20 implemented stages strictly adhere to the modular monolith architecture. Web/API interfaces reside under `apps/web/`, shared TypeScript contracts in `packages/contracts/`, database schemas/migrations in `infrastructure/database/`, and ML core logic in `services/ml/app/`.
@@ -38,12 +39,12 @@ ARCHITECTURE FINDINGS
 DATA & DATABASE FINDINGS
 - **Canonical ID Resolution**: Entity resolution follows strict multi-level deterministic matching (Exact ID -> Verified Alias -> Controlled Normalized Match -> Review Queue). Unverified fixtures in Stage 14 trigger immediate short-circuiting (`UNVERIFIED_FIXTURE`).
 - **Data Lake & Provenance**: Raw data sources are preserved immutably. Historical feature dataset `STAGE9_FEATURE_DATASET_v1.0.0` was generated under strict pre-match cutoffs ($T_{\text{match}} < T_{\text{target}}$) with explicit missingness representation (`PRESERVE_NULL`). Zero synthetic, fabricated, or silently imputed data exists in production data paths.
-- **PostgreSQL Persistence**: `PredictionReportModel` in `services/ml/app/db/models.py` and Alembic migration `002_stage20_prediction_history_schema.py` accurately mirror `AuditablePredictionReport`. Prediction records are indexed by `report_id`, `fixture_id`, `created_at`, `status`, and `audit_hash`.
+- **PostgreSQL Persistence**: `PredictionReportModel` in `services/ml/app/db/models.py` and Alembic migration `002_stage20_prediction_history_schema.py` accurately mirror `AuditablePredictionReport`. Prediction records are indexed by `report_id`, `fixture_id`, `created_at`, `status`, and `audit_hash`. Live PostgreSQL persistence (save, retrieve, fresh repository/session retrieval, duplicate prediction ID rejection) was directly verified during Stage 20. In the Stage 21 test environment, two live-PostgreSQL tests were skipped because no live PostgreSQL server instance was active, falling back to SQLite in-memory unit tests.
 
 ML & FORECASTING FINDINGS
-- **Temporal Leakage Prevention**: Stage 9 features enforce $T_{\text{retrieval}} \le T_{\text{cutoff}}$. Stage 16 `CurrentFeatureUpdater` validates that feature updates do not violate prediction-time cutoff bounds, raising `PredictionTimeLeakageError` on temporal violations.
-- **Model Versions & Backtesting**: Baselines (Poisson, Dixon-Coles, Empirical) and ML models (Logistic Regression, Random Forest, XGBoost) match Stage 10–11 specifications. Walk-forward backtesting (Stage 12) evaluated 4 chronological windows without data contamination.
-- **Calibration & Model Selection**: Stage 13 Platt Scaling reduced 1X2 Log Loss to 1.02832 and Expected Calibration Error (ECE) to 0.00291. `xgboost_platt` was objectively selected as the production forecaster.
+- **Temporal Leakage Controls**: All audited temporal-leakage controls and tests passed, and no temporal leakage was detected in the audited implementation. Stage 9 pre-match feature vectors strictly enforce $T_{\text{retrieval}} \le T_{\text{cutoff}}$. Stage 16 `CurrentFeatureUpdater` validates that feature updates do not violate prediction-time cutoff bounds, raising `PredictionTimeLeakageError` on temporal violations.
+- **Model Versions & Backtesting**: Baselines (Poisson, Dixon-Coles, Empirical) and ML models (Logistic Regression, Random Forest, XGBoost) match Stage 10–11 specifications. Walk-forward backtesting (Stage 12) evaluated 4 chronological windows without temporal leakage detected.
+- **Calibration & Model Selection**: Stage 13 Platt Scaling reduced 1X2 Log Loss to 1.02832 and Expected Calibration Error (ECE) to 0.00291. `xgboost_platt` was selected by the Stage 13 model-selection procedure using the documented calibration/selection set (Window 4 metrics served as selection-set metrics).
 
 CURRENT RESEARCH FINDINGS
 - **Validation Rules & Evidence Processing**: Stage 14 Fixture Verification, Stage 15 Evidence Validation Engine (allowlist checking, URL scheme validation, 7-day freshness threshold, claim deduplication, contradiction detection), and Stage 16 Current Feature Updater strictly validate web claims.
@@ -71,7 +72,7 @@ TESTING
 - **Passed**: 183 tests passed.
 - **Failed**: 0 tests failed.
 - **Skipped**: 2 tests skipped (integration tests requiring live PostgreSQL instance).
-- **Missing Critical Tests**: None. Unit, property, and end-to-end pipeline integration test coverage is complete across all 20 stages.
+- **Missing Critical Tests**: Critical implementation paths were covered by the available test suite. Two live-PostgreSQL integration tests were skipped in the Stage 21 environment because a live PostgreSQL instance was unavailable. PostgreSQL persistence (save, retrieve, fresh repository/session retrieval, duplicate prediction ID rejection) had previously been directly verified during Stage 20.
 
 DEPLOYMENT READINESS
 - **Frontend / Web (Next.js)**: Configured under `apps/web/` for deployment on Vercel or Node.js runtime.
@@ -103,7 +104,7 @@ None prior to proceeding to Stage 22.
 
 ACCEPTANCE CRITERIA
 1. Stages 1–20 present, connected, and compliant with specification: PASS
-2. Zero temporal leakage in features, backtesting, or current updates: PASS
+2. All audited temporal-leakage controls and tests passed, and no temporal leakage was detected in the audited implementation: PASS
 3. Immutability of raw data and canonical football data lake: PASS
 4. Model training, backtesting, and Platt calibration verified: PASS
 5. Current-match research, evidence validation, and contradiction blocking operational: PASS
