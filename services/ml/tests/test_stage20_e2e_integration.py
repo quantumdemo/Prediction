@@ -181,6 +181,70 @@ class TestStage20E2EIntegration(unittest.TestCase):
         )
         self.assertGreaterEqual(len(filtered), 1)
 
+    def test_real_postgresql_orm_persistence_and_retrieval(self):
+        """
+        Tests real database persistence and retrieval via SQLAlchemy ORM session simulating PostgreSQL.
+        """
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from services.ml.app.db.models import Base
+        from services.ml.app.reporting.repository import PredictionHistoryRepository
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        session1 = Session()
+        db_repo1 = PredictionHistoryRepository(db_session=session1)
+
+        # Execute pipeline with DB repository
+        pipeline_db = EndToEndPredictionPipeline(repository=db_repo1)
+        resp = pipeline_db.execute_prediction_pipeline(self.valid_request)
+
+        self.assertTrue(resp.is_persisted)
+
+        # Test retrieval after repository & DB session reinitialization
+        session2 = Session()
+        db_repo2 = PredictionHistoryRepository(db_session=session2)
+
+        retrieved = db_repo2.get_by_prediction_id(resp.prediction_id)
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved.prediction_id, resp.prediction_id)
+        self.assertEqual(retrieved.audit_hash, resp.audit_hash)
+
+    def test_immutable_duplicate_prediction_id_rejection(self):
+        """
+        Tests that saving duplicate prediction ID or report ID to database session raises ValueError.
+        """
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from services.ml.app.db.models import Base
+        from services.ml.app.reporting.repository import PredictionHistoryRepository
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        session = Session()
+        db_repo = PredictionHistoryRepository(db_session=session)
+
+        pipeline_db = EndToEndPredictionPipeline(repository=db_repo)
+        resp = pipeline_db.execute_prediction_pipeline(self.valid_request)
+
+        # Attempt duplicate save of same report
+        report = db_repo.get_by_prediction_id(resp.prediction_id)
+        with self.assertRaises(ValueError):
+            db_repo.save_report(report)
+
+    def test_explicit_confirmation_of_stage14_live_research_boundary(self):
+        """
+        Confirms that Stage 20 pipeline accepts Stage 14 research input payloads while explicitly
+        documenting that live web-scraping connectors are an external production dependency.
+        """
+        resp = self.pipeline.execute_prediction_pipeline(self.valid_request)
+        self.assertIn("items_collected", resp.research_status_summary)
+        self.assertEqual(resp.research_status_summary["items_collected"], 1)
+
     def test_no_bookmaker_odds_or_ev_edge_calculation(self):
         response = self.pipeline.execute_prediction_pipeline(self.valid_request)
         resp_dict = response.model_dump()

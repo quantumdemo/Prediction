@@ -356,3 +356,19 @@ class IngestionRunModel(Base):
     error_log = Column(Text)
     started_at_utc = Column(DateTime, nullable=False, default=default_utc_now)
     completed_at_utc = Column(DateTime)
+
+
+class PredictionReportModel(Base):
+    __tablename__ = "prediction_reports"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    prediction_id = Column(String(128), nullable=False, unique=True)
+    fixture_id = Column(String(128), nullable=False)
+    prediction_timestamp_utc = Column(DateTime, nullable=False)
+    model_name = Column(String(128), nullable=False)
+    model_version = Column(String(64), nullable=False)
+    calibration_method = Column(String(64), nullable=False)
+    decision_status = Column(String(64), nullable=False)
+    report_payload_json = Column(Text, nullable=False)
+    audit_hash = Column(String(64), nullable=False)
+    created_at_utc = Column(DateTime, nullable=False, default=default_utc_now)
