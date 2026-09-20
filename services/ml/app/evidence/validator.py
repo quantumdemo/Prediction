@@ -4,15 +4,18 @@ Stage 15 Evidence Validation Engine Implementation
 Deterministically validates pre-match research items against source allowlists,
 URL validity, timestamp freshness, claim completeness, entity association, deduplication,
 and contradiction checks while preserving full provenance and state integrity.
+Includes Stage 24 SSRF safeguards rejecting private IPv4/IPv6, loopback, and local network targets.
 """
 
 import hashlib
+import ipaddress
 import json
 import logging
 import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Set
+from urllib.parse import urlparse
 
 from services.ml.app.evidence.schemas import (
     EvidenceValidationReport,
@@ -165,17 +168,17 @@ class EvidenceValidationEngine:
         outcome = ValidationOutcome.ACCEPTED
         adjusted_state = item.research_state
 
-        # 1. URL & Protocol Validation
+        # 1. URL Protocol & SSRF Private-Network Validation
         if not item.source_url or not item.source_url.startswith(("http://", "https://")):
             reasons.append(ValidationReason.INVALID_URL)
             outcome = ValidationOutcome.REJECTED
             adjusted_state = ResearchState.UNAVAILABLE
 
-        # Extract domain from URL
+        # Extract domain/host from URL
         domain = self._extract_domain(item.source_url) if outcome != ValidationOutcome.REJECTED else ""
         if outcome != ValidationOutcome.REJECTED:
-            # Reject loopback, localhost, and internal IP addresses
-            if domain in ("127.0.0.1", "localhost", "0.0.0.0") or domain.startswith("10.") or domain.startswith("192.168."):
+            # SSRF Check: Reject private IPv4/IPv6, loopback, link-local, and local domain targets
+            if self._is_unsafe_private_network_target(domain):
                 reasons.append(ValidationReason.INVALID_URL)
                 outcome = ValidationOutcome.REJECTED
                 adjusted_state = ResearchState.UNAVAILABLE
@@ -255,12 +258,42 @@ class EvidenceValidationEngine:
     @staticmethod
     def _extract_domain(url: str) -> str:
         try:
-            domain = url.split("//")[-1].split("/")[0].split(":")[0].lower()
-            if domain.startswith("www."):
-                domain = domain[4:]
-            return domain
+            parsed = urlparse(url)
+            host = parsed.hostname or url.split("//")[-1].split("/")[0].split(":")[0]
+            host = host.strip("[]").lower()
+            if host.startswith("www."):
+                host = host[4:]
+            return host
         except Exception:
             return ""
+
+    @staticmethod
+    def _is_unsafe_private_network_target(host: str) -> bool:
+        if not host:
+            return True
+        clean_host = host.strip("[]").lower()
+
+        # Check domain string names
+        if clean_host in ("localhost", "0.0.0.0", "broadcasthost") or clean_host.endswith((".local", ".internal", ".lan", ".home", ".invalid")):
+            return True
+
+        # Check IP address targets (IPv4 or IPv6)
+        try:
+            ip = ipaddress.ip_address(clean_host)
+            if (
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_link_local
+                or ip.is_reserved
+                or ip.is_multicast
+                or ip.is_unspecified
+            ):
+                return True
+        except ValueError:
+            # Not an IP address, domain string passed domain checks
+            pass
+
+        return False
 
     def _check_timestamp_freshness(self, timestamp_str: str, match_date_str: str) -> Tuple[bool, float]:
         try:
