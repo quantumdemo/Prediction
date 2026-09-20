@@ -10,12 +10,12 @@ OBJECTIVE
 Harden system security, structured JSON logging, correlation ID tracing, SSRF safeguards, database failure isolation, and operational observability without altering ML model architectures or prediction logic.
 
 IMPLEMENTED
-- Hardened structured JSON logging in `services/ml/app/logging_config.py` (`JSONStructuredFormatter`), automatically redacting keys matching `password`, `secret`, `token`, `authorization`, `api_key`, `key`, `database_url` from log payloads and metadata.
+- Hardened structured JSON logging in `services/ml/app/logging_config.py` (`JSONStructuredFormatter`), automatically redacting keys matching `password`, `secret`, `token`, `authorization`, `api_key`, `key`, `database_url` and regex patterns from log payloads and metadata.
 - Implemented `x-correlation-id` HTTP middleware in `services/ml/app/main.py` generating/preserving request correlation IDs across FastAPI endpoints and logs.
 - Hardened FastAPI unhandled exception handling in `services/ml/app/main.py` returning generic HTTP 500 responses (`INTERNAL_INFRASTRUCTURE_FAILURE`) with correlation IDs, masking Python tracebacks, database URLs, and SQL queries.
-- Preserved SSRF and URL scheme safeguards in `services/ml/app/evidence/validator.py` (`EvidenceValidationEngine`), rejecting invalid schemes (`file://`) and loopback/private IP targets (`127.0.0.1`, `localhost`).
-- Implemented Stage 24 security and observability tests in `services/ml/tests/test_stage24_security_observability.py`.
-- Created documentation `docs/STAGE24_SECURITY_MONITORING_LOGGING_FAILURE_HANDLING.md`.
+- Hardened SSRF and private-network URL safeguards in `services/ml/app/evidence/validator.py` (`EvidenceValidationEngine`), using `ipaddress` parsing to reject loopback (`127.0.0.0/8`, `::1`), RFC1918 private IPv4 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local (`169.254.0.0/16`, `fe80::/10`), unique-local IPv6 (`fc00::/7`), and invalid schemes (`file://`, `ftp://`).
+- Added unit tests in `services/ml/tests/test_stage24_security_observability.py`.
+- Updated documentation `docs/STAGE24_SECURITY_MONITORING_LOGGING_FAILURE_HANDLING.md`.
 
 FILES CREATED
 - `services/ml/tests/test_stage24_security_observability.py`
@@ -25,12 +25,13 @@ FILES CREATED
 FILES MODIFIED
 - `services/ml/app/logging_config.py`
 - `services/ml/app/main.py`
+- `services/ml/app/evidence/validator.py`
 
 SECURITY CONTROLS
-- Secret credentials in `DATABASE_URL` masked via `mask_database_url`.
-- `JSONStructuredFormatter` automatically redacts sensitive keys from logs and metadata.
+- Database URL credentials masked via `mask_database_url`.
+- `JSONStructuredFormatter` automatically redacts sensitive keys and connection strings from logs and metadata.
 - Catch-all exception handler masks internal Python stack traces, database URLs, and SQL queries from API clients.
-- SSRF safeguards enforce domain allowlists and reject non-http(s) schemes and loopback targets.
+- SSRF safeguards enforce domain allowlists and reject private IPv4/IPv6, loopback, link-local, and non-http(s) schemes.
 
 MONITORING CONTROLS
 - `/health` and `/api/v1/health`: Returns service health and live database connection ping status (`HEALTHY` or `DEGRADED`).
@@ -43,10 +44,10 @@ LOGGING CONTROLS
 - Automatic secret redaction for passwords, tokens, API keys, and connection strings.
 
 FAILURE HANDLING
-- Operational infrastructure failures return HTTP 500 / 503 responses without creating false predictions.
+- Operational infrastructure failures return HTTP 500 / 503 responses without creating false or fabricated predictions.
 - Validation failures return HTTP 422 Unprocessable Entity.
-- BLOCKED prediction decisions return short-circuited unmapped NO-BET reports.
-- NO-BET decisions preserve explicit risk statuses (`NO_BET`, `LOW_CONFIDENCE`, `HIGH_RISK`).
+- BLOCKED prediction decisions return short-circuited unmapped reports (`BLOCKED`).
+- NO-BET decisions preserve explicit risk statuses (`NO_BET`, `LOW_CONFIDENCE`, `HIGH_RISK`, `INSUFFICIENT_EVIDENCE`).
 
 TESTS RUN
 - `python3 -m unittest discover -s tests` (52 root architecture tests)
@@ -62,10 +63,11 @@ VERIFIED
 - Log sanitization and secret redaction.
 - Correlation ID middleware propagation.
 - Global catch-all exception masking.
-- SSRF URL scheme and domain validation.
+- SSRF URL scheme, domain, loopback, and private IPv4/IPv6 address validation.
 - Health/readiness endpoint database checks.
 
 NOT VERIFIED
+- Dependency vulnerability scanning (`NOT VERIFIED — dependency vulnerability scanning could not be executed` due to offline environment restrictions).
 - Live external cloud APM monitoring and alerting notification integrations (Datadog/NewRelic).
 
 NOT IMPLEMENTED
@@ -77,21 +79,24 @@ RECOMMENDED
 KNOWN LIMITATIONS
 - In-memory SQLite test harnesses skip 2 live PostgreSQL integration tests when a live PostgreSQL database server is not running locally.
 - Live cloud APM monitoring agents are deployment-specific and not configured in the offline repository.
+- Dependency vulnerability scanning could not be executed due to environment restrictions.
 
 UNRESOLVED ISSUES
-None.
+- Live PostgreSQL integration remains unverified when no live PostgreSQL server is available during testing.
+- External cloud APM monitoring remains unconfigured in the offline repository.
+- External alert notification integration remains unconfigured.
 
 ACCEPTANCE CRITERIA
 1. Existing security-sensitive code paths audited: PASS
 2. Secrets not exposed through logs or API errors: PASS
 3. API input/error handling hardened: PASS
-4. SSRF/source URL protections preserved and tested: PASS
+4. SSRF/source URL protections preserved and tested for private IPv4/IPv6: PASS
 5. Safe structured logging implemented and verified: PASS
 6. Correlation/request IDs available and propagated: PASS
 7. Infrastructure failures distinct from NO-BET/BLOCKED decisions: PASS
 8. Health/readiness behavior safe and accurate: PASS
 9. Operational failure states observable: PASS
-10. Dependency/security checks performed: PASS
+10. Dependency/security checks documented: PASS (`NOT VERIFIED — dependency vulnerability scanning could not be executed`)
 11. Existing Stage 1–23 tests still pass: PASS
 12. Stage 24 tests pass: PASS
 13. Unavailable external verification explicitly disclosed: PASS
@@ -108,7 +113,7 @@ MARKDOWN REPORT PATH
 - `docs/STAGE24_SECURITY_MONITORING_LOGGING_FAILURE_HANDLING.md`
 
 NEXT RECOMMENDED STAGE
-Stage 25 — Operational Dashboard & Reporting Web Interface
+Stage 25 — Private Beta + Controlled Live Testing
 
 BLOCKERS
 None.

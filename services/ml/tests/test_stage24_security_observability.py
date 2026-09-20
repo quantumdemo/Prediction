@@ -4,7 +4,7 @@ Unit and Integration Tests for Stage 24 Security, Logging, Monitoring & Failure 
 Verifies:
 - Secret and database credential redaction in JSONStructuredFormatter.
 - Correlation ID propagation via FastAPI middleware.
-- SSRF safeguards in EvidenceValidationEngine (rejecting unsafe URL schemes and IP addresses).
+- SSRF safeguards in EvidenceValidationEngine (rejecting unsafe URL schemes, loopback, private IPv4/IPv6, and link-local addresses).
 - Unhandled exception masking in API endpoints.
 - Distinction between infrastructure operational failures, BLOCKED decisions, and NO-BET decisions.
 """
@@ -74,35 +74,42 @@ class TestStage24SecurityObservability(unittest.TestCase):
         self.assertIsNotNone(res_gen.headers.get("x-correlation-id"))
         self.assertTrue(res_gen.headers.get("x-correlation-id").startswith("ml-"))
 
-    def test_ssrf_and_unsafe_url_scheme_rejection(self):
+    def test_ssrf_and_unsafe_private_network_url_rejection(self):
         """
-        Verifies that SSRF threats and invalid URL schemes are rejected during evidence validation.
+        Verifies that SSRF threats, loopback, private IPv4/IPv6, link-local, and invalid URL schemes are rejected.
         """
-        item1 = ResearchItem(
-            fact_id="FACT_SSRF_001",
-            category=FactCategory.INJURIES,
-            claim="Injured player",
-            source_name="Localhost Unsafe Source",
-            source_url="http://127.0.0.1/admin",
-            retrieved_at_utc="2026-03-01T12:00:00Z",
-            research_state=ResearchState.VERIFIED,
-        )
-        item2 = ResearchItem(
-            fact_id="FACT_SSRF_002",
-            category=FactCategory.TACTICAL_CHANGES,
-            claim="4-3-3 formation",
-            source_name="File Scheme Unsafe Source",
-            source_url="file:///etc/passwd",
-            retrieved_at_utc="2026-03-01T12:00:00Z",
-            research_state=ResearchState.VERIFIED,
-        )
+        unsafe_urls = [
+            "http://127.0.0.1/admin",
+            "http://localhost/config",
+            "http://10.0.0.1/internal-api",
+            "http://172.16.0.1/secret",
+            "http://192.168.1.1/router-settings",
+            "http://169.254.169.254/latest/meta-data",
+            "http://[::1]/ipv6-loopback",
+            "http://[fe80::1]/ipv6-link-local",
+            "file:///etc/passwd",
+            "ftp://anonymous@server/data",
+        ]
 
-        validated, rejected = self.evidence_validator.validate_items([item1, item2])
+        unsafe_items = [
+            ResearchItem(
+                fact_id=f"FACT_SSRF_{idx}",
+                category=FactCategory.INJURIES,
+                claim=f"Claim {idx}",
+                source_name=f"Source {idx}",
+                source_url=url,
+                retrieved_at_utc="2026-03-01T12:00:00Z",
+                research_state=ResearchState.VERIFIED,
+            )
+            for idx, url in enumerate(unsafe_urls, 1)
+        ]
+
+        validated, rejected = self.evidence_validator.validate_items(unsafe_items)
 
         self.assertEqual(len(validated), 0)
-        self.assertEqual(len(rejected), 2)
-        self.assertEqual(rejected[0].validation_outcome.value, "REJECTED")
-        self.assertEqual(rejected[1].validation_outcome.value, "REJECTED")
+        self.assertEqual(len(rejected), len(unsafe_urls))
+        for rej in rejected:
+            self.assertEqual(rej.validation_outcome.value, "REJECTED")
 
 
 if __name__ == "__main__":
