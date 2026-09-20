@@ -123,6 +123,38 @@ class EvidenceValidationEngine:
         logger.info(f"Validation complete for {fixture.fixture_id}: Accepted={accepted_count}, Downgraded={downgraded_count}, Conflicting={conflicting_count}, Rejected={rejected_count}.")
         return report
 
+    def validate_items(
+        self,
+        items: List[ResearchItem],
+        fixture: Optional[FixtureVerification] = None,
+    ) -> Tuple[List[ValidatedEvidenceItem], List[ValidatedEvidenceItem]]:
+        """
+        Validates a list of ResearchItems against an optional fixture. Returns (validated_items, rejected_items).
+        """
+        if fixture is None:
+            fixture = FixtureVerification(
+                fixture_id="FIX_DEFAULT_VAL",
+                home_team="Home Club",
+                away_team="Away Club",
+                home_canonical_id="CLUB_HOME",
+                away_canonical_id="CLUB_AWAY",
+                competition="League",
+                competition_canonical_id="COMP_LEAGUE",
+                season="2026",
+                match_date="2026-03-01",
+                is_verified=True,
+            )
+        validated = []
+        rejected = []
+        seen_claims: Set[str] = set()
+        for item in items:
+            val = self.validate_item(item, fixture, seen_claims)
+            if val.validation_outcome == ValidationOutcome.REJECTED:
+                rejected.append(val)
+            else:
+                validated.append(val)
+        return validated, rejected
+
     def validate_item(
         self,
         item: ResearchItem,
@@ -142,7 +174,12 @@ class EvidenceValidationEngine:
         # Extract domain from URL
         domain = self._extract_domain(item.source_url) if outcome != ValidationOutcome.REJECTED else ""
         if outcome != ValidationOutcome.REJECTED:
-            if domain in self.allowlisted_domains:
+            # Reject loopback, localhost, and internal IP addresses
+            if domain in ("127.0.0.1", "localhost", "0.0.0.0") or domain.startswith("10.") or domain.startswith("192.168."):
+                reasons.append(ValidationReason.INVALID_URL)
+                outcome = ValidationOutcome.REJECTED
+                adjusted_state = ResearchState.UNAVAILABLE
+            elif domain in self.allowlisted_domains:
                 reasons.append(ValidationReason.VALID_PRIMARY_SOURCE)
             else:
                 reasons.append(ValidationReason.UNALLOWLISTED_SOURCE)
@@ -218,7 +255,7 @@ class EvidenceValidationEngine:
     @staticmethod
     def _extract_domain(url: str) -> str:
         try:
-            domain = url.split("//")[-1].split("/")[0].lower()
+            domain = url.split("//")[-1].split("/")[0].split(":")[0].lower()
             if domain.startswith("www."):
                 domain = domain[4:]
             return domain

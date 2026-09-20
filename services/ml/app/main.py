@@ -28,7 +28,7 @@ logger = logging.getLogger("football_ml.api")
 
 app = FastAPI(
     title="Football AI Platform — Python ML Service",
-    description="FastAPI service boundary for feature engineering, forecasting, calibration, and prediction pipeline.",
+    description="FastAPI operational boundary for forecasting, risk evaluation, and prediction history.",
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -51,17 +51,22 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """
-    Global catch-all exception handler masking internal stack traces/secrets.
+    Global catch-all exception handler masking internal stack traces, DB URLs, and SQL queries from clients.
     """
     correlation_id = getattr(request.state, "correlation_id", "N/A")
-    logger.error(f"Unhandled exception on endpoint {request.url.path}: {exc}", exc_info=True)
+    logger.error(
+        f"Unhandled exception on endpoint {request.url.path}: {exc}",
+        extra={"correlation_id": correlation_id, "event_type": "INFRASTRUCTURE_FAILURE"},
+        exc_info=True,
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        headers={"x-correlation-id": correlation_id},
         content={
             "success": False,
             "error": {
-                "code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred. Please contact system support.",
+                "code": "INTERNAL_INFRASTRUCTURE_FAILURE",
+                "message": "An internal operational error occurred. The incident has been logged with correlation ID.",
             },
             "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "correlation_id": correlation_id,
@@ -83,11 +88,12 @@ async def correlation_id_middleware(request: Request, call_next):
 async def health(request: Request):
     correlation_id = getattr(request.state, "correlation_id", "N/A")
     db_status = check_database_health()
+    is_db_healthy = db_status.get("status") == "HEALTHY"
 
     return {
         "success": True,
         "data": {
-            "status": "HEALTHY" if db_status.get("status") == "HEALTHY" else "DEGRADED",
+            "status": "HEALTHY" if is_db_healthy else "DEGRADED",
             "service": settings.service_name,
             "environment": settings.environment,
             "version": "0.1.0",
@@ -106,7 +112,8 @@ async def readiness(request: Request):
     is_ready = db_status.get("status") == "HEALTHY"
 
     return JSONResponse(
-        status_code=status.HTTP_200_OK if is_ready else status.HTTP_530_SERVICE_UNAVAILABLE if hasattr(status, "HTTP_530_SERVICE_UNAVAILABLE") else status.HTTP_503_SERVICE_UNAVAILABLE,
+        status_code=status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        headers={"x-correlation-id": correlation_id},
         content={
             "success": is_ready,
             "data": {
