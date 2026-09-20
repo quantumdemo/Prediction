@@ -1,16 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// Competition format map and team auto-completion inference
+const COMMON_COMPETITIONS = [
+  { code: 'COMP_ENG_PL', label: 'English Premier League (COMP_ENG_PL)' },
+  { code: 'COMP_ESP_LL', label: 'Spanish La Liga (COMP_ESP_LL)' },
+  { code: 'COMP_GER_BL', label: 'German Bundesliga (COMP_GER_BL)' },
+  { code: 'COMP_ITA_SA', label: 'Italian Serie A (COMP_ITA_SA)' },
+  { code: 'COMP_FRA_L1', label: 'French Ligue 1 (COMP_FRA_L1)' },
+  { code: 'COMP_UEFA_CL', label: 'UEFA Champions League (COMP_UEFA_CL)' },
+];
+
+const KNOWN_TEAM_COMPETITION_MAP: Record<string, string> = {
+  // English Premier League
+  arsenal: 'COMP_ENG_PL',
+  chelsea: 'COMP_ENG_PL',
+  liverpool: 'COMP_ENG_PL',
+  manchesterunited: 'COMP_ENG_PL',
+  manchestercity: 'COMP_ENG_PL',
+  tottenham: 'COMP_ENG_PL',
+  astonvilla: 'COMP_ENG_PL',
+  newcastle: 'COMP_ENG_PL',
+  // La Liga
+  realmadrid: 'COMP_ESP_LL',
+  barcelona: 'COMP_ESP_LL',
+  atleticomadrid: 'COMP_ESP_LL',
+  sevilla: 'COMP_ESP_LL',
+  // Bundesliga
+  bayernmunich: 'COMP_GER_BL',
+  borussiadortmund: 'COMP_GER_BL',
+  bayerleverkusen: 'COMP_GER_BL',
+  // Serie A
+  intermilan: 'COMP_ITA_SA',
+  acmilan: 'COMP_ITA_SA',
+  juventus: 'COMP_ITA_SA',
+  napoli: 'COMP_ITA_SA',
+};
 
 export default function PredictPage() {
   const [homeTeam, setHomeTeam] = useState('Arsenal');
   const [awayTeam, setAwayTeam] = useState('Chelsea');
   const [matchDate, setMatchDate] = useState('2026-03-15');
   const [competition, setCompetition] = useState('COMP_ENG_PL');
+  const [autoFilled, setAutoFilled] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-completion logic: automatically infers competition code when teams or match date change
+  useEffect(() => {
+    const normHome = homeTeam.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normAway = awayTeam.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const inferredComp = KNOWN_TEAM_COMPETITION_MAP[normHome] || KNOWN_TEAM_COMPETITION_MAP[normAway];
+    if (inferredComp) {
+      setCompetition(inferredComp);
+      setAutoFilled(true);
+    } else {
+      setAutoFilled(false);
+    }
+  }, [homeTeam, awayTeam, matchDate]);
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +148,7 @@ export default function PredictPage() {
       <section style={{ backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
         <h2 style={{ marginTop: 0, color: '#f8fafc', fontSize: '1.25rem' }}>Generate Match Prediction</h2>
         <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-          Execute the 9-stage prediction integration pipeline against the production <code style={{ color: '#38bdf8' }}>xgboost_platt</code> forecaster.
+          Execute the 9-stage prediction integration pipeline against the production <code style={{ color: '#38bdf8' }}>xgboost_platt</code> forecaster. Competition codes follow the canonical format <code style={{ color: '#38bdf8' }}>COMP_&lt;NATION&gt;_&lt;LEAGUE&gt;</code> (e.g. <code style={{ color: '#38bdf8' }}>COMP_ENG_PL</code>) and auto-complete based on team names.
         </p>
 
         <form onSubmit={handlePredict} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
@@ -117,8 +168,24 @@ export default function PredictPage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.25rem' }}>Competition</label>
-            <input type="text" value={competition} onChange={(e) => setCompetition(e.target.value)} required style={{ width: '100%', padding: '0.5rem', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '0.25rem' }} />
+            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.25rem' }}>
+              Competition Code {autoFilled && <span style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 600 }}>(Auto-completed)</span>}
+            </label>
+            <select
+              value={competition}
+              onChange={(e) => {
+                setCompetition(e.target.value);
+                setAutoFilled(false);
+              }}
+              style={{ width: '100%', padding: '0.5rem', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '0.25rem' }}
+            >
+              {COMMON_COMPETITIONS.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>Format: COMP_&lt;COUNTRY&gt;_&lt;LEAGUE&gt;</span>
           </div>
 
           <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
