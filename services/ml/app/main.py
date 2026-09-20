@@ -3,8 +3,9 @@ import logging
 import os
 import sys
 import uuid
+from typing import Optional
 
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -23,6 +24,13 @@ from services.ml.app.errors import (  # noqa: E402
     platform_exception_handler,
     validation_exception_handler,
 )
+from services.ml.app.integration.pipeline import EndToEndPredictionPipeline  # noqa: E402
+from services.ml.app.integration.schemas import (  # noqa: E402
+    EndToEndPredictionResponse,
+    PredictionPipelineRequest,
+)
+from services.ml.app.reporting.repository import PredictionHistoryRepository  # noqa: E402
+from services.ml.app.reporting.schemas import PredictionHistoryFilter  # noqa: E402
 
 logger = logging.getLogger("football_ml.api")
 
@@ -34,16 +42,19 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS configuration
+# CORS configuration supporting environment-driven allowed origins
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")] if allowed_origins_env else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Exception handlers
+# Global exception handlers
 app.add_exception_handler(PlatformException, platform_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
@@ -127,4 +138,60 @@ async def readiness(request: Request):
             "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "correlation_id": correlation_id,
         },
+    )
+
+
+@app.post("/api/v1/predict", tags=["Prediction"])
+async def predict_match(request: Request, payload: PredictionPipelineRequest):
+    """
+    Executes the 9-stage prediction pipeline over current fixture research facts and base features.
+    Outputs an immutable, auditable prediction report and persists it to the prediction history repository.
+    """
+    correlation_id = getattr(request.state, "correlation_id", "N/A")
+    logger.info(
+        f"Received prediction request for fixture {payload.fixture_id} ({payload.home_team} vs {payload.away_team})",
+        extra={"correlation_id": correlation_id, "event_type": "PREDICTION_PIPELINE_START"},
+    )
+
+    pipeline = EndToEndPredictionPipeline()
+    response_data: EndToEndPredictionResponse = pipeline.execute_prediction_pipeline(payload)
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        headers={"x-correlation-id": correlation_id},
+        content=response_data.model_dump(),
+    )
+
+
+@app.get("/api/v1/history", tags=["Prediction"])
+async def get_prediction_history(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    decision_status: Optional[str] = Query(default=None, alias="status"),
+    fixture_id: Optional[str] = Query(default=None),
+):
+    """
+    Retrieves auditable historical prediction reports matching multi-criteria filters.
+    """
+    correlation_id = getattr(request.state, "correlation_id", "N/A")
+    logger.info(
+        f"Querying prediction history (limit={limit}, offset={offset}, status={decision_status}, fixture_id={fixture_id})",
+        extra={"correlation_id": correlation_id, "event_type": "PREDICTION_HISTORY_QUERY"},
+    )
+
+    query_filter = PredictionHistoryFilter(
+        limit=limit,
+        offset=offset,
+        status=decision_status,
+        fixture_id=fixture_id,
+    )
+
+    repository = PredictionHistoryRepository()
+    reports = repository.query_history(query_filter)
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        headers={"x-correlation-id": correlation_id},
+        content=[report.model_dump() for report in reports],
     )
