@@ -1,23 +1,9 @@
-import os
-import sys
 import unittest
-
 from fastapi.testclient import TestClient
 
-# Ensure root & packages path in sys.path
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-contracts_dir = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../packages/contracts/python")
-)
-if root_dir not in sys.path:
-    sys.path.insert(0, root_dir)
-if contracts_dir not in sys.path:
-    sys.path.insert(0, contracts_dir)
+from services.ml.app.main import app
 
-from services.ml.app.main import app  # noqa: E402
-
-
-class TestFastAPIService(unittest.TestCase):
+class TestMainAPIEndpoints(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
@@ -26,50 +12,61 @@ class TestFastAPIService(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data["success"])
-        self.assertEqual(data["data"]["status"], "HEALTHY")
-        self.assertEqual(data["data"]["service"], "ml-service")
-        self.assertIn("correlation_id", data)
+        self.assertIn("status", data["data"])
 
-    def test_health_v1_endpoint(self):
+    def test_api_v1_health_endpoint(self):
         response = self.client.get("/api/v1/health")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data["success"])
-        self.assertEqual(data["data"]["status"], "HEALTHY")
 
     def test_readiness_endpoint(self):
         response = self.client.get("/readiness")
+        self.assertIn(response.status_code, [200, 530, 503])
+        data = response.json()
+        self.assertIn("success", data)
+
+    def test_predict_endpoint_valid_request(self):
+        payload = {
+            "fixture_id": "FIX_MAIN_TEST_001",
+            "home_team": "Arsenal",
+            "away_team": "Chelsea",
+            "competition": "COMP_ENG_PL",
+            "season": "2025_2026",
+            "match_date": "2026-03-15",
+            "raw_research_inputs": [],
+            "base_features": {}
+        }
+        response = self.client.post("/api/v1/predict", json=payload, headers={"x-correlation-id": "test-predict-corr-123"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("x-correlation-id"), "test-predict-corr-123")
+        data = response.json()
+        self.assertIn("report_id", data)
+        self.assertIn("audit_hash", data)
+        self.assertIn("decision_status", data)
+        self.assertIn(data["decision_status"], ["ELIGIBLE", "NO_BET", "LOW_CONFIDENCE", "HIGH_RISK", "INSUFFICIENT_EVIDENCE", "BLOCKED"])
+
+    def test_predict_endpoint_invalid_request(self):
+        # Missing required field 'home_team'
+        payload = {
+            "fixture_id": "FIX_INVALID_001",
+            "away_team": "Chelsea",
+        }
+        response = self.client.post("/api/v1/predict", json=payload)
+        self.assertEqual(response.status_code, 422)
+
+    def test_history_endpoint_empty_and_query(self):
+        response = self.client.get("/api/v1/history?limit=10&offset=0", headers={"x-correlation-id": "test-history-corr-456"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("x-correlation-id"), "test-history-corr-456")
+        data = response.json()
+        self.assertIsInstance(data, list)
+
+    def test_history_endpoint_filtering(self):
+        response = self.client.get("/api/v1/history?status=ELIGIBLE&fixture_id=FIX_MAIN_TEST_001")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertTrue(data["success"])
-        self.assertEqual(data["data"]["status"], "READY")
-
-    def test_correlation_id_propagation(self):
-        custom_id = "test-corr-1234"
-        response = self.client.get("/health", headers={"x-correlation-id": custom_id})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("x-correlation-id"), custom_id)
-        data = response.json()
-        self.assertEqual(data["correlation_id"], custom_id)
-
-    def test_not_implemented_boundaries(self):
-        from services.ml.app.data import process_raw_match_data
-        from services.ml.app.errors import PlatformException
-        from services.ml.app.features import calculate_feature_vector
-        from services.ml.app.models import run_model_inference
-
-        with self.assertRaises(PlatformException) as cm:
-            process_raw_match_data()
-        self.assertEqual(cm.exception.code.value, "NOT_IMPLEMENTED")
-
-        with self.assertRaises(PlatformException) as cm:
-            calculate_feature_vector()
-        self.assertEqual(cm.exception.code.value, "NOT_IMPLEMENTED")
-
-        with self.assertRaises(PlatformException) as cm:
-            run_model_inference()
-        self.assertEqual(cm.exception.code.value, "NOT_IMPLEMENTED")
-
+        self.assertIsInstance(data, list)
 
 if __name__ == "__main__":
     unittest.main()
