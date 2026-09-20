@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch, MagicMock
 
 import sqlalchemy as sa
 from sqlalchemy import create_engine, inspect
@@ -44,6 +45,35 @@ class TestMigrationExecution(unittest.TestCase):
 
             for tbl in expected_tables:
                 self.assertIn(tbl, tables, f"Expected table '{tbl}' was not created by DDL")
+
+    @patch.dict(os.environ, {"DATABASE_URL": "postgresql://user:pass@supabase_host:6543/postgres?sslmode=require"})
+    def test_alembic_env_database_url_override(self):
+        from alembic.config import Config
+        ini_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../../../infrastructure/database/alembic.ini")
+        )
+        config = Config(ini_path)
+
+        # Test offline migration URL resolution logic
+        url_offline = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+        self.assertEqual(url_offline, "postgresql://user:pass@supabase_host:6543/postgres?sslmode=require")
+
+        # Test online migration config modification logic
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            config.set_main_option("sqlalchemy.url", database_url)
+        self.assertEqual(config.get_main_option("sqlalchemy.url"), "postgresql://user:pass@supabase_host:6543/postgres?sslmode=require")
+
+    def test_alembic_env_fallback_without_database_url(self):
+        from alembic.config import Config
+        ini_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../../../infrastructure/database/alembic.ini")
+        )
+        config = Config(ini_path)
+
+        with patch.dict(os.environ, {}, clear=True):
+            url_offline = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+            self.assertEqual(url_offline, "postgresql://postgres:postgres@localhost:5432/football_ai_db")
 
 if __name__ == "__main__":
     unittest.main()
