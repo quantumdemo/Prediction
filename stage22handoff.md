@@ -172,7 +172,7 @@ NO-BET / BLOCKED RESULTS
 
 ACCEPTANCE CRITERIA
 1. Real historical football data used (Stages 6–9): PASS
-2. Historical evaluation period occurs strictly after training cutoff date: PASS
+2. Historical evaluation period occurs after the model training cutoff: PASS; however, it overlaps the Stage 13 model-selection period and is therefore not an unbiased out-of-sample evaluation.
 3. Temporal cutoff rules enforced ($T_{\text{retrieval}} \le T_{\text{cutoff}}$): PASS
 4. Outcome fields strictly isolated from prediction inputs: PASS
 5. Approved Stage 13 production forecaster (`xgboost_platt`) used without recalibration: PASS
@@ -208,7 +208,7 @@ GIT STATUS
 - New files staged for Stage 22 implementation under `services/ml/app/validation/`, `services/ml/tests/`, `docs/`, and root repository.
 
 NEXT RECOMMENDED STAGE
-Stage 23 — Live Match Operational Pipeline / Real-Time Testing
+Stage 23 — Production Infrastructure + DB Hardening
 
 BLOCKERS
 None.
