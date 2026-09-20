@@ -18,6 +18,7 @@ from services.ml.app.calibration.calibrators import IsotonicCalibrator, PlattSca
 from services.ml.app.calibration.metrics import calculate_ece, calculate_mce, calculate_multiclass_ece
 from services.ml.app.evaluation.metrics import evaluate_forecast_performance
 from services.ml.app.models.base import ForecastOutput
+from services.ml.app.models.xgboost_model import XGBoostForecaster
 
 logger = logging.getLogger("football_ml.selection.selector")
 
@@ -31,6 +32,12 @@ class ModelSelector:
 
     def __init__(self, artifacts_dir: str = "/tmp/stage12_artifacts"):
         self.artifacts_dir = artifacts_dir
+
+    def get_production_forecaster(self) -> Any:
+        """
+        Returns the Stage 13 selected production forecaster (xgboost_platt).
+        """
+        return XGBoostForecaster(n_estimators=100, max_depth=5, learning_rate=0.05)
 
     def run_calibration_and_selection(self, output_dir: str = "/tmp/stage13_artifacts") -> Dict[str, Any]:
         os.makedirs(output_dir, exist_ok=True)
