@@ -1,5 +1,8 @@
 import unittest
+import os
+from unittest.mock import patch
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
 
 from services.ml.app.main import app
 from services.ml.app.db.session import normalize_database_url
@@ -21,6 +24,15 @@ class TestMainAPIEndpoints(unittest.TestCase):
         # Verify sqlite and pre-dialect URLs remain unchanged
         sqlite_url = "sqlite:///:memory:"
         self.assertEqual(normalize_database_url(sqlite_url), "sqlite:///:memory:")
+
+    def test_sqlalchemy_engine_dialect_resolution(self):
+        # Regression test: Verify create_engine resolves psycopg (psycopg3) driver and cannot select psycopg2
+        raw_postgres = "postgresql://user:password@host:5432/football_ai_db"
+        normalized_url = normalize_database_url(raw_postgres)
+        engine = create_engine(normalized_url)
+
+        self.assertEqual(engine.dialect.name, "postgresql")
+        self.assertEqual(engine.dialect.driver, "psycopg")
 
     def test_health_endpoint(self):
         response = self.client.get("/health")
