@@ -14,6 +14,14 @@ class TestVercelEntryPoint(unittest.TestCase):
         self.assertIsNotNone(app)
         self.assertEqual(app.title, "Football AI Platform — Python ML Service")
 
+    def test_apps_web_api_index_import(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("apps_web_api_index", "apps/web/api/index.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertIsNotNone(mod.app)
+        self.assertEqual(mod.app.title, "Football AI Platform — Python ML Service")
+
     def test_vercel_bundle_no_heavy_ml_imports(self):
         """
         Guarantees that importing the Vercel API entry point in a fresh Python process does NOT pull
