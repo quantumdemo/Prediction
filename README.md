@@ -1,11 +1,7 @@
 # Football AI Intelligence & Machine-Learning Platform
 
-[![Stage 1: Master Specification & Engineering Constitution](https://img.shields.io/badge/Stage-1%20Complete-green)](#development-stages)
-[![Stage 2: Architecture & Technology Research](https://img.shields.io/badge/Stage-2%20Complete-green)](#development-stages)
-[![Stage 3: Repository & Application Skeleton](https://img.shields.io/badge/Stage-3%20Complete-green)](#development-stages)
-[![Stage 4: Database Schema & Data Contracts](https://img.shields.io/badge/Stage-4%20Complete-green)](#development-stages)
-[![Stage 5: Data Source Research & Strategy](https://img.shields.io/badge/Stage-5%20Complete-green)](#development-stages)
-[![Stage 6: Historical Dataset Acquisition & Ingestion](https://img.shields.io/badge/Stage-6%20Complete-green)](#development-stages)
+[![Stage 26: Public Launch & Deployment](https://img.shields.io/badge/Stage-26%20Complete-green)](#development-stages)
+[![Live Vercel Production](https://img.shields.io/badge/Live-https%3A%2F%2Fprediction--web--zeta.vercel.app%2F-blue)](https://prediction-web-zeta.vercel.app/)
 
 A production-quality Football AI Intelligence & Machine-Learning Platform built for real-world football match data ingestion, validation, feature engineering, statistical/ML forecasting, risk evaluation, probability calibration, and auditable prediction reporting.
 
@@ -83,26 +79,26 @@ The core objective is to calculate scientifically sound football event probabili
 - [x] **STAGE 4 — Database Schema & Data Contracts**
 - [x] **STAGE 5 — Football Data Source Research & Acquisition Strategy**
 - [x] **STAGE 6 — Historical Dataset Acquisition & Ingestion**
-- [ ] STAGE 7 — Data Cleaning, Normalization & Validation
-- [ ] STAGE 8 — Football Entity & Fixture Identification
-- [ ] STAGE 9 — Feature Engineering Engine
-- [ ] STAGE 10 — Statistical Baseline Forecasting
-- [ ] STAGE 11 — Machine-Learning Forecasting
-- [ ] STAGE 12 — Time-Aware Historical Backtesting
-- [ ] STAGE 13 — Probability Calibration & Model Selection
-- [ ] STAGE 14 — Current-Match Web Research Engine
-- [ ] STAGE 15 — Evidence, Provenance & Current-Data Validation
-- [ ] STAGE 16 — Current Feature Update & Forecast Pipeline
-- [ ] STAGE 17 — Market Catalogue & Market Mapping
-- [ ] STAGE 18 — Risk, Confidence & NO-BET Engine
-- [ ] STAGE 19 — Auditable Reporting & Prediction History
-- [ ] STAGE 20 — Complete Prediction Pipeline Integration
-- [ ] STAGE 21 — Full System Audit
-- [ ] STAGE 22 — Historical Validation & Shadow Testing
-- [ ] STAGE 23 — Production Infrastructure & Database Hardening
-- [ ] STAGE 24 — Security, Monitoring, Logging & Failure Handling
-- [ ] STAGE 25 — Private Beta & Controlled Live Testing
-- [ ] STAGE 26 — Public Launch & Continuous Monitoring
+- [x] **STAGE 7 — Data Cleaning, Normalization & Validation**
+- [x] **STAGE 8 — Football Entity & Fixture Identification**
+- [x] **STAGE 9 — Feature Engineering Engine**
+- [x] **STAGE 10 — Statistical Baseline Forecasting**
+- [x] **STAGE 11 — Machine-Learning Forecasting**
+- [x] **STAGE 12 — Time-Aware Historical Backtesting**
+- [x] **STAGE 13 — Probability Calibration & Model Selection**
+- [x] **STAGE 14 — Current-Match Web Research Engine**
+- [x] **STAGE 15 — Evidence, Provenance & Current-Data Validation**
+- [x] **STAGE 16 — Current Feature Update & Forecast Pipeline**
+- [x] **STAGE 17 — Market Catalogue & Market Mapping**
+- [x] **STAGE 18 — Risk, Confidence & NO-BET Engine**
+- [x] **STAGE 19 — Auditable Reporting & Prediction History**
+- [x] **STAGE 20 — Complete Prediction Pipeline Integration**
+- [x] **STAGE 21 — Full System Audit**
+- [x] **STAGE 22 — Historical Validation & Shadow Testing**
+- [x] **STAGE 23 — Production Infrastructure & Database Hardening**
+- [x] **STAGE 24 — Security, Monitoring, Logging & Failure Handling**
+- [x] **STAGE 25 — Private Beta & Controlled Live Testing**
+- [x] **STAGE 26 — Public Launch & Continuous Monitoring**
 
 ---
 
