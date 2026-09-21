@@ -2,10 +2,25 @@ import unittest
 from fastapi.testclient import TestClient
 
 from services.ml.app.main import app
+from services.ml.app.db.session import normalize_database_url
 
 class TestMainAPIEndpoints(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
+
+    def test_database_url_normalization_psycopg3(self):
+        # Verify postgresql:// and postgres:// are normalized to postgresql+psycopg:// (psycopg3)
+        raw_postgres = "postgresql://user:password@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
+        normalized = normalize_database_url(raw_postgres)
+        self.assertEqual(normalized, "postgresql+psycopg://user:password@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require")
+
+        raw_legacy = "postgres://user:password@host:5432/db"
+        normalized_legacy = normalize_database_url(raw_legacy)
+        self.assertEqual(normalized_legacy, "postgresql+psycopg://user:password@host:5432/db")
+
+        # Verify sqlite and pre-dialect URLs remain unchanged
+        sqlite_url = "sqlite:///:memory:"
+        self.assertEqual(normalize_database_url(sqlite_url), "sqlite:///:memory:")
 
     def test_health_endpoint(self):
         response = self.client.get("/health")

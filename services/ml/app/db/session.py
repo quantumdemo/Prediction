@@ -1,7 +1,7 @@
 import logging
 import os
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Optional
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import DBAPIError, OperationalError, SQLAlchemyError
@@ -11,9 +11,26 @@ from services.ml.app.config import settings
 
 logger = logging.getLogger("football_ml.database")
 
-DATABASE_URL = settings.database_url or os.getenv(
-    "DATABASE_URL", "sqlite:///:memory:"
-)
+
+def normalize_database_url(raw_url: Optional[str] = None) -> str:
+    """
+    Normalizes raw database connection strings to explicitly specify psycopg (psycopg3) driver.
+    Converts legacy 'postgres://' or 'postgresql://' prefixes to 'postgresql+psycopg://'.
+    Preserves SQLite URLs and existing dialect specifications.
+    """
+    url = raw_url or settings.database_url or os.getenv("DATABASE_URL", "sqlite:///:memory:")
+    if not url:
+        return "sqlite:///:memory:"
+
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://"):]
+    elif url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://"):]
+
+    return url
+
+
+DATABASE_URL = normalize_database_url()
 
 # Production-grade SQLAlchemy Engine Configuration
 engine_kwargs = {
