@@ -34,6 +34,28 @@ class TestMainAPIEndpoints(unittest.TestCase):
         self.assertEqual(engine.dialect.name, "postgresql")
         self.assertEqual(engine.dialect.driver, "psycopg")
 
+    def test_create_engine_fails_without_psycopg_driver(self):
+        # Regression test: Verify create_engine FAILS with ModuleNotFoundError for psycopg2 when given raw postgresql:// without +psycopg
+        raw_unnormalized_postgres = "postgresql://user:password@host:5432/football_ai_db"
+        with self.assertRaises((ModuleNotFoundError, Exception)) as ctx:
+            create_engine(raw_unnormalized_postgres)
+        self.assertIn("psycopg2", str(ctx.exception))
+
+    def test_exact_production_style_environment_value(self):
+        # Regression test: Verify exact production environment string normalization and dialect resolution
+        prod_env_value = "postgresql://<user>:<password>@<host>:5432/<database>"
+        normalized_url = normalize_database_url(prod_env_value)
+        self.assertTrue(normalized_url.startswith("postgresql+psycopg://"))
+
+        engine = create_engine(normalized_url)
+        self.assertEqual(engine.dialect.name, "postgresql")
+        self.assertEqual(engine.dialect.driver, "psycopg")
+
+    def test_session_engine_uses_normalized_url(self):
+        from services.ml.app.db.session import RAW_DATABASE_URL, DATABASE_URL, engine
+        self.assertEqual(DATABASE_URL, normalize_database_url(RAW_DATABASE_URL))
+        self.assertTrue(DATABASE_URL.startswith("postgresql+psycopg://") or DATABASE_URL.startswith("sqlite://"))
+
     def test_health_endpoint(self):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)

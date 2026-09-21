@@ -15,10 +15,25 @@ logger = logging.getLogger("football_ml.database")
 def normalize_database_url(raw_url: Optional[str] = None) -> str:
     """
     Normalizes raw database connection strings to explicitly specify psycopg (psycopg3) driver.
-    Converts legacy 'postgres://' or 'postgresql://' prefixes to 'postgresql+psycopg://'.
-    Preserves SQLite URLs and existing dialect specifications.
+    Converts legacy 'postgres://', 'postgresql://', 'postgresql+psycopg2://', etc. to 'postgresql+psycopg://'.
+    Strips leading/trailing whitespace and quotes. Preserves SQLite URLs and valid dialect specifications.
     """
-    url = raw_url or settings.database_url or os.getenv("DATABASE_URL", "sqlite:///:memory:")
+    url = raw_url
+    if url is None:
+        url = (
+            settings.database_url
+            or os.getenv("DATABASE_URL")
+            or os.getenv("POSTGRES_URL")
+            or os.getenv("POSTGRES_PRISMA_URL")
+            or os.getenv("POSTGRES_URL_NON_POOLING")
+            or "sqlite:///:memory:"
+        )
+
+    if not url:
+        return "sqlite:///:memory:"
+
+    url = str(url).strip().strip("'\"")
+
     if not url:
         return "sqlite:///:memory:"
 
@@ -26,11 +41,26 @@ def normalize_database_url(raw_url: Optional[str] = None) -> str:
         return "postgresql+psycopg://" + url[len("postgres://"):]
     elif url.startswith("postgresql://"):
         return "postgresql+psycopg://" + url[len("postgresql://"):]
+    elif url.startswith("postgres+psycopg2://"):
+        return "postgresql+psycopg://" + url[len("postgres+psycopg2://"):]
+    elif url.startswith("postgresql+psycopg2://"):
+        return "postgresql+psycopg://" + url[len("postgresql+psycopg2://"):]
+    elif url.startswith("postgres+psycopg://"):
+        return "postgresql+psycopg://" + url[len("postgres+psycopg://"):]
 
     return url
 
 
-DATABASE_URL = normalize_database_url()
+RAW_DATABASE_URL = (
+    settings.database_url
+    or os.getenv("DATABASE_URL")
+    or os.getenv("POSTGRES_URL")
+    or os.getenv("POSTGRES_PRISMA_URL")
+    or os.getenv("POSTGRES_URL_NON_POOLING")
+    or "sqlite:///:memory:"
+)
+
+DATABASE_URL = normalize_database_url(RAW_DATABASE_URL)
 
 # Production-grade SQLAlchemy Engine Configuration
 engine_kwargs = {
