@@ -13,8 +13,11 @@ Requires-Dist: python-dotenv>=1.0.1
 Requires-Dist: psycopg[binary]>=3.1.18
 Requires-Dist: sqlalchemy>=2.0.0
 Requires-Dist: alembic>=1.13.0
-Requires-Dist: scikit-learn>=1.4.0
-Requires-Dist: xgboost>=2.0.0
+Provides-Extra: ml-worker
+Requires-Dist: scikit-learn>=1.4.0; extra == "ml-worker"
+Requires-Dist: xgboost>=2.0.0; extra == "ml-worker"
+Requires-Dist: scipy>=1.12.0; extra == "ml-worker"
+Requires-Dist: numpy>=1.26.0; extra == "ml-worker"
 
 # Football AI Intelligence & Machine-Learning Platform
 

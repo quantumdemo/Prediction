@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import unittest
 from fastapi.testclient import TestClient
 
@@ -11,6 +13,21 @@ class TestVercelEntryPoint(unittest.TestCase):
     def test_vercel_entrypoint_app_import(self):
         self.assertIsNotNone(app)
         self.assertEqual(app.title, "Football AI Platform — Python ML Service")
+
+    def test_vercel_bundle_no_heavy_ml_imports(self):
+        """
+        Guarantees that importing the Vercel API entry point in a fresh Python process does NOT pull
+        heavyweight ML C++ binaries (xgboost, sklearn, scipy, nvidia-nccl-cu13) into sys.modules.
+        This prevents the Vercel serverless function bundle from exceeding 500 MB.
+        """
+        cmd = [
+            sys.executable,
+            "-c",
+            "import sys; import api.index; heavy = ['xgboost', 'sklearn', 'scipy', 'nvidia']; "
+            "loaded = [m for m in heavy if m in sys.modules]; print(loaded)",
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        self.assertIn("[]", res.stdout.strip())
 
     def test_health_endpoint_via_entrypoint(self):
         response = self.client.get("/health")
