@@ -20,7 +20,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     async function fetchHistory() {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
       try {
         const response = await fetch(`${apiBase}/api/v1/history?limit=20`, {
           headers: { 'x-correlation-id': `history-ui-${Date.now()}` },

@@ -69,7 +69,7 @@ export default function PredictPage() {
     setError(null);
     setResult(null);
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
 
     try {
       const payload = {

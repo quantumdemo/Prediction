@@ -29,7 +29,7 @@ export default function StatusPage() {
 
   useEffect(() => {
     async function fetchSystemStatus() {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
       try {
         const [hRes, rRes] = await Promise.all([
           fetch(`${apiBase}/api/v1/health`, { headers: { 'x-correlation-id': `health-ui-${Date.now()}` } }),
